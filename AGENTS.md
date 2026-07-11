@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-**Phase 3: Environment & Dependencies** — .env読み込み、pubspec依存関係
+**Phase 4: Keyword Management** — キーワードCRUD + SharedPreferences永続化
 
 ## Key Files
 
@@ -33,4 +33,4 @@
 - HTML parsing: html
 - Persistence: shared_preferences
 - Sharing: share_plus
-- Env: flutter_dotenv
+- Config: assets/search_query.txt

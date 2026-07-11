@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-07-11)
 
 **Core value:** 「Google検索にsite:演算子を手動で貼り付ける」を、キーワード登録→ワンタップ検索に置き換える
-**Current focus:** Phase 2 — Android Platform Config
+**Current focus:** Phase 3 — Environment & Dependencies
 
 ## Current Position
 
-Phase: 3 of 9 (Environment & Dependencies)
+Phase: 4 of 9 (Keyword Management)
 Plan: 0 of 0 in current phase
-Status: Phase 2 complete
-Last activity: 2026-07-11 — Phase 2: Android Platform Config complete
+Status: Phase 3 complete
+Last activity: 2026-07-11 — Phase 3: Environment & Dependencies complete
 
-Progress: [██░░░░░░░░] 22%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 

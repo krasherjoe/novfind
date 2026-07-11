@@ -38,7 +38,7 @@
 - [x] **BASE-02**: Android 9+のNetworkSecurityConfigが設定される
 - [x] **BASE-03**: Android 11+のpackage visibility（<queries>）が設定される
 - [x] **BASE-04**: INTERNETパーミッションが設定される
-- [ ] **BASE-05**: `.env`ファイルからクエリ文字列が読み込まれる
+- [x] **BASE-05**: アセットからクエリ文字列が読み込まれる
 
 ## v2 Requirements
 
@@ -74,7 +74,7 @@
 | BASE-02 | Phase 2: Android Platform Config | Complete ✓ |
 | BASE-03 | Phase 2: Android Platform Config | Complete ✓ |
 | BASE-04 | Phase 2: Android Platform Config | Complete ✓ |
-| BASE-05 | Phase 3: Environment & Dependencies | Pending |
+| BASE-05 | Phase 3: Environment & Dependencies | Complete ✓ |
 | KW-01 | Phase 4: Keyword Management | Pending |
 | KW-02 | Phase 4: Keyword Management | Pending |
 | KW-03 | Phase 4: Keyword Management | Pending |
