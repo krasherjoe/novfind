@@ -11,8 +11,16 @@ import '../plugins/ice/ssh_logger.dart';
 import '../providers/connection_status.dart'
     show IceStatus, SshStatus, getSshDir, iceStatus, sshStatus;
 import '../services/ssh_tunnel_service.dart';
-import 'env_loader.dart';
 import 'mattermost_api.dart';
+
+// Hardcoded Mattermost configuration (read from .env, embedded for reliability)
+const _mmBaseUrl = 'https://mm.ka.sugeee.com';
+const _mmTeam = 'cyb';
+const _mmChannel = 'novfind';
+const _mmBotName = 'novfind-android';
+const _mmBotToken = 'adrfhe4fy3npmrut93sift9hoh';
+const _mmOpencodeBot = 'oc-gui1';
+const _mmOpencodeToken = '1gfhn9hya3yumk9hcejoe9x9ma';
 
 class MattermostDebugBridge {
   static final MattermostDebugBridge instance = MattermostDebugBridge._();
@@ -36,12 +44,15 @@ class MattermostDebugBridge {
     if (_running) return;
     _lastError = null;
 
-    _config = await loadMattermostConfig();
-    if (_config == null) {
-      _lastError = 'Mattermost not configured (.env)';
-      debugPrint('[MMB] $_lastError');
-      return;
-    }
+    _config = const MattermostConfig(
+      baseUrl: _mmBaseUrl,
+      team: _mmTeam,
+      channel: _mmChannel,
+      botName: _mmBotName,
+      botToken: _mmBotToken,
+      opencodeBotName: _mmOpencodeBot,
+      opencodeToken: _mmOpencodeToken,
+    );
 
     _api = MattermostApi(_config!);
 
