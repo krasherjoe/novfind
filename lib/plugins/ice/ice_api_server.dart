@@ -191,6 +191,7 @@ class IceApiServer {
             'version': _appVersion,
             'endpoints': [
               'GET  /health',
+              'GET  /version',
               'GET  /state',
               'GET  /errors',
               'DELETE /errors',
@@ -281,6 +282,7 @@ class IceApiServer {
       },
       'endpoints': [
         'GET /health - Health check',
+        'GET /version - App version',
         'GET /debug - This debug info',
         'GET /state - Full app state',
         'GET /errors - Error logs',
@@ -358,6 +360,7 @@ class IceApiServer {
         'command': name,
         'args': args,
         'result': result,
+        'version': _appVersion,
       });
     } catch (e) {
       IceLogger.error('CMD:$name', 'Command failed', error: e);
