@@ -14,11 +14,11 @@
 
 ### 検索実行
 
-- [ ] **SRCH-01**: ユーザーは特定のキーワードを選択して検索を実行できる
+- [x] **SRCH-01**: ユーザーは特定のキーワードを選択して検索を実行できる
 - [x] **SRCH-02**: 検索にはsite:演算子クエリが使用される（assets/search_query.txt）
-- [ ] **SRCH-03**: 検索中はローディングインジケータが表示される
-- [ ] **SRCH-04**: 検索エラー時はユーザーに適切なエラーが表示される
-- [ ] **SRCH-05**: 空の結果時はその旨が表示される
+- [x] **SRCH-03**: 検索中はローディングインジケータが表示される
+- [x] **SRCH-04**: 検索エラー時はユーザーに適切なエラーが表示される
+- [x] **SRCH-05**: 空の結果時はその旨が表示される
 - [ ] **SRCH-06**: 検索結果はpull-to-refreshで再取得できる
 
 ### 検索結果表示
@@ -80,10 +80,10 @@
 | KW-03 | Phase 4: Keyword Management | Complete ✓ |
 | KW-04 | Phase 4: Keyword Management | Complete ✓ |
 | SRCH-02 | Phase 5: Scraping Engine Prototype | Complete ✓ |
-| SRCH-01 | Phase 6: Search Execution & States | Pending |
-| SRCH-03 | Phase 6: Search Execution & States | Pending |
-| SRCH-04 | Phase 6: Search Execution & States | Pending |
-| SRCH-05 | Phase 6: Search Execution & States | Pending |
+| SRCH-01 | Phase 6: Search Execution & States | Complete ✓ |
+| SRCH-03 | Phase 6: Search Execution & States | Complete ✓ |
+| SRCH-04 | Phase 6: Search Execution & States | Complete ✓ |
+| SRCH-05 | Phase 6: Search Execution & States | Complete ✓ |
 | RES-01 | Phase 7: Results Display | Pending |
 | SRCH-06 | Phase 7: Results Display | Pending |
 | RES-02 | Phase 8: Source Site Labels | Pending |

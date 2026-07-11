@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-**Phase 6: Search Execution & States** — キーワード選択→検索実行、ローディング/エラー/空状態UI
+**Phase 7: Results Display** — 検索結果のタイトル+URL一覧表示、pull-to-refresh
 
 ## Key Files
 

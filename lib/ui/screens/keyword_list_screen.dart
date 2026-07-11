@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/keyword.dart';
 import '../../providers/keywords_provider.dart';
@@ -31,7 +32,7 @@ class KeywordListScreen extends ConsumerWidget {
           }
           return ReorderableListView.builder(
             itemCount: keywords.length,
-            onReorder: (oldIndex, newIndex) {},
+            onReorderItem: (oldIndex, newIndex) {},
             itemBuilder: (context, index) {
               final keyword = keywords[index];
               return _KeywordTile(
@@ -84,7 +85,7 @@ class _KeywordTile extends StatelessWidget {
   final Keyword keyword;
   final VoidCallback onDelete;
 
-  _KeywordTile({
+  const _KeywordTile({
     required this.keyword,
     required this.onDelete,
     super.key,
@@ -98,10 +99,20 @@ class _KeywordTile extends StatelessWidget {
         '追加: ${_formatDate(keyword.createdAt)}',
         style: Theme.of(context).textTheme.bodySmall,
       ),
-      trailing: IconButton(
-        icon: const Icon(Icons.delete_outline),
-        onPressed: onDelete,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => context.go('/search/${Uri.encodeComponent(keyword.text)}'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: onDelete,
+          ),
+        ],
       ),
+      onTap: () => context.go('/search/${Uri.encodeComponent(keyword.text)}'),
     );
   }
 

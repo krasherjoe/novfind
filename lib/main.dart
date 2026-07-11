@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'ui/screens/keyword_list_screen.dart';
+import 'ui/screens/search_results_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +18,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/',
         name: 'keywords',
         builder: (context, state) => const KeywordListScreen(),
+      ),
+      GoRoute(
+        path: '/search/:keyword',
+        name: 'search',
+        builder: (context, state) => SearchResultsScreen(
+          keyword: state.pathParameters['keyword']!,
+        ),
       ),
     ],
   );
