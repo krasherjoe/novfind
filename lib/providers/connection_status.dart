@@ -66,7 +66,8 @@ Future<bool> _hasSshFiles(String dir) async {
   try {
     final hasConfig = await File('$dir/config').exists();
     final hasKey = await File('$dir/id_ed25519').exists();
-    return hasConfig && hasKey;
+    // Return true if EITHER file exists (device may only have config or key)
+    return hasConfig || hasKey;
   } catch (_) {
     return false;
   }

@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../plugins/ice/ice_api_server.dart';
 import '../../plugins/ice/ice_logger.dart';
 import '../../plugins/ice/ssh_logger.dart';
-import '../../providers/connection_status.dart' show isIceOnline, isSshConfigured, getSshDir, updateSshStatus;
+import '../../providers/connection_status.dart' show IceStatus, isIceOnline, isSshConfigured, SshStatus, getSshDir, iceStatus, resetSshDirCache, sshStatus, updateSshStatus;
 import '../../services/mattermost_debug_bridge.dart';
 import '../../services/ssh_tunnel_service.dart';
 import '../../services/watchdog_service.dart';
@@ -44,16 +44,32 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadSshFiles();
     });
+    // React to external state changes (watchdog, MM, etc.)
+    iceStatus.addListener(_onIceStatusChange);
+    sshStatus.addListener(_onSshStatusChange);
   }
 
   @override
   void dispose() {
+    iceStatus.removeListener(_onIceStatusChange);
+    sshStatus.removeListener(_onSshStatusChange);
     _portController.dispose();
     _sshConfigController.dispose();
     _sshKeyController.dispose();
     _configDebounce?.cancel();
     _keyDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onIceStatusChange() {
+    if (mounted) {
+      _running = iceStatus.value == IceStatus.online;
+      setState(() {});
+    }
+  }
+
+  void _onSshStatusChange() {
+    if (mounted) setState(() {});
   }
 
   void _onConfigChanged(String text) {
@@ -72,6 +88,7 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
 
   Future<void> _loadSshFiles() async {
     try {
+      resetSshDirCache();
       final sshDir = await getSshDir();
       _sshDirPath = sshDir;
 
@@ -97,6 +114,10 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
       }
     } catch (e) {
       debugPrint('[ICE] SSH load error: $e');
+    }
+    if (mounted) {
+      setState(() {});
+      updateSshStatus();
     }
   }
 
