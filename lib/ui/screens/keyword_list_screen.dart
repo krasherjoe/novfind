@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/keyword.dart';
 import '../../providers/keywords_provider.dart';
+import '../../providers/theme_provider.dart' show themeNotifier, toggleTheme;
 
 class KeywordListScreen extends ConsumerWidget {
   const KeywordListScreen({super.key});
@@ -16,6 +17,23 @@ class KeywordListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('novfind'),
         centerTitle: true,
+        actions: [
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: themeNotifier,
+            builder: (context, mode, _) {
+              final icon = switch (mode) {
+                ThemeMode.dark => Icons.dark_mode,
+                ThemeMode.light => Icons.light_mode,
+                _ => Icons.brightness_auto,
+              };
+              return IconButton(
+                icon: Icon(icon),
+                onPressed: toggleTheme,
+                tooltip: 'テーマ切替',
+              );
+            },
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddDialog(context, ref),

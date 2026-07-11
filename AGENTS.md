@@ -38,3 +38,4 @@
 - Persistence: shared_preferences
 - Sharing: share_plus
 - Config: assets/search_query.txt
+- Env: .env (git-ignored), copy from .env.example
