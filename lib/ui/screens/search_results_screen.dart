@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/services/google_search_service.dart';
+import '../../data/services/site_label_service.dart';
 import '../../models/search_result.dart';
 import '../../providers/search_provider.dart';
 
@@ -104,9 +105,15 @@ class SearchResultsScreen extends ConsumerWidget {
                           color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
-                      Text(
-                        result.sourceDomain,
-                        style: Theme.of(context).textTheme.labelSmall,
+                      const SizedBox(height: 4),
+                      Chip(
+                        label: Text(
+                          SiteLabelService.getLabel(result.sourceDomain),
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: EdgeInsets.zero,
                       ),
                     ],
                   ),

@@ -24,7 +24,7 @@
 ### 検索結果表示
 
 - [x] **RES-01**: 検索結果はタイトルとURLの一覧で表示される
-- [ ] **RES-02**: 各結果には取得元サイト名が表示される
+- [x] **RES-02**: 各結果には取得元サイト名が表示される
 - [ ] **RES-03**: 結果はタップ可能でAndroid共有シートが開く
 
 ### 共有
@@ -86,7 +86,7 @@
 | SRCH-05 | Phase 6: Search Execution & States | Complete ✓ |
 | RES-01 | Phase 7: Results Display | Complete ✓ |
 | SRCH-06 | Phase 7: Results Display | Complete ✓ |
-| RES-02 | Phase 8: Source Site Labels | Pending |
+| RES-02 | Phase 8: Source Site Labels | Complete ✓ |
 | RES-03 | Phase 9: Share Integration | Pending |
 | SHARE-01 | Phase 9: Share Integration | Pending |
 | SHARE-02 | Phase 9: Share Integration | Pending |

@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-**Phase 8: Source Site Labels** — 各結果に取得元サイト名ラベル表示
+**Phase 9: Share Integration** — 結果タップ→Android共有シート→任意アプリにURL共有
 
 ## Key Files
 
