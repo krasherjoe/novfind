@@ -7,11 +7,38 @@ import '../../providers/keywords_provider.dart';
 import '../../providers/search_history_provider.dart';
 import '../../providers/theme_provider.dart' show themeNotifier, toggleTheme;
 
-class KeywordListScreen extends ConsumerWidget {
+class KeywordListScreen extends ConsumerStatefulWidget {
   const KeywordListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<KeywordListScreen> createState() => _KeywordListScreenState();
+}
+
+class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
+  final _selectedIds = <String>{};
+
+  void _toggleSelect(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _searchSelected() {
+    if (_selectedIds.isEmpty) return;
+    final keywords = ref.read(keywordsProvider).asData?.value ?? [];
+    final texts = keywords.where((k) => _selectedIds.contains(k.id)).map((k) => k.text);
+    final query = texts.join(' ');
+    ref.read(searchHistoryProvider.notifier).addEntry(query);
+    _selectedIds.clear();
+    context.go('/search/${Uri.encodeComponent(query)}');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final keywordsAsync = ref.watch(keywordsProvider);
 
     return Scaffold(
@@ -19,6 +46,12 @@ class KeywordListScreen extends ConsumerWidget {
         title: const Text('novfind'),
         centerTitle: true,
         actions: [
+          if (_selectedIds.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: _searchSelected,
+              tooltip: 'AND検索 (${_selectedIds.length}個)',
+            ),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () => context.go('/sites'),
@@ -58,16 +91,18 @@ class KeywordListScreen extends ConsumerWidget {
                     child: Text('右下の＋からキーワードを追加'),
                   );
                 }
-                return ReorderableListView.builder(
+                return ListView.builder(
                   itemCount: keywords.length,
-                  onReorderItem: (oldIndex, newIndex) {},
                   itemBuilder: (context, index) {
                     final keyword = keywords[index];
-                  return _KeywordTile(
-                    key: ValueKey(keyword.id),
-                    keyword: keyword,
-                    onDelete: () => ref.read(keywordsProvider.notifier).removeKeyword(keyword.id),
-                  );
+                    final selected = _selectedIds.contains(keyword.id);
+                    return _KeywordTile(
+                      key: ValueKey(keyword.id),
+                      keyword: keyword,
+                      selected: selected,
+                      onDelete: () => ref.read(keywordsProvider.notifier).removeKeyword(keyword.id),
+                      onToggleSelect: () => _toggleSelect(keyword.id),
+                    );
                   },
                 );
               },
@@ -177,16 +212,25 @@ class _SearchHistorySection extends ConsumerWidget {
 class _KeywordTile extends ConsumerWidget {
   final Keyword keyword;
   final VoidCallback onDelete;
+  final VoidCallback onToggleSelect;
+  final bool selected;
 
   const _KeywordTile({
     required this.keyword,
     required this.onDelete,
+    required this.onToggleSelect,
+    required this.selected,
     super.key,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
+      selected: selected,
+      leading: IconButton(
+        icon: Icon(selected ? Icons.check_box : Icons.check_box_outline_blank),
+        onPressed: onToggleSelect,
+      ),
       title: Text(keyword.text),
       subtitle: Text(
         '追加: ${_formatDate(keyword.createdAt)}',
@@ -208,7 +252,8 @@ class _KeywordTile extends ConsumerWidget {
           ),
         ],
       ),
-      onTap: () {
+      onTap: onToggleSelect,
+      onLongPress: () {
         ref.read(searchHistoryProvider.notifier).addEntry(keyword.text);
         context.go('/search/${Uri.encodeComponent(keyword.text)}');
       },
