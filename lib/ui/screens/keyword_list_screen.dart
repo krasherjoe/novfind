@@ -10,6 +10,7 @@ import '../../providers/search_history_provider.dart';
 import '../../app_service.dart' show restartIce;
 import '../../providers/connection_status.dart' show isIceOnline, isSshConfigured;
 import '../../providers/theme_provider.dart' show themeNotifier, toggleTheme;
+import '../../services/widget_service.dart';
 import '../widgets/status_dot.dart';
 
 class KeywordListScreen extends ConsumerStatefulWidget {
@@ -71,6 +72,11 @@ class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
               icon: const Icon(Icons.search),
               onPressed: _searchSelected,
               tooltip: 'AND検索 (${_selectedIds.length}個)',
+            ),
+            IconButton(
+              icon: const Icon(Icons.widgets),
+              onPressed: WidgetService.updateWidget,
+              tooltip: 'Widget更新',
             ),
             IconButton(
               icon: const Icon(Icons.developer_mode),
