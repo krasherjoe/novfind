@@ -10,6 +10,7 @@ import '../../plugins/ice/ice_api_server.dart';
 import '../../plugins/ice/ice_logger.dart';
 import '../../plugins/ice/ssh_logger.dart';
 import '../../providers/connection_status.dart' show isIceOnline, isSshConfigured, getSshDir, updateSshStatus;
+import '../../services/mattermost_debug_bridge.dart';
 import '../../services/ssh_tunnel_service.dart';
 import '../widgets/status_dot.dart';
 
@@ -218,6 +219,8 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
           _buildSshLogCard(cs),
           const SizedBox(height: 16),
           _buildEndpointsCard(cs),
+          const SizedBox(height: 16),
+          _buildMmStatusCard(cs),
           if (_statusMessage != null) ...[
             const SizedBox(height: 12),
             Card(
@@ -524,6 +527,72 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildMmStatusCard(ColorScheme cs) {
+    final bridge = MattermostDebugBridge.instance;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.forum, size: 18, color: cs.primary),
+                const SizedBox(width: 8),
+                Text('Mattermost Bridge',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  width: 10, height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: bridge.isRunning ? Colors.green : Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(bridge.isRunning ? 'Connected' : 'Disconnected',
+                    style: TextStyle(fontSize: 13, color: cs.onSurface)),
+              ],
+            ),
+            if (bridge.lastError != null) ...[
+              const SizedBox(height: 4),
+              Text(bridge.lastError!,
+                  style: TextStyle(fontSize: 11, color: Colors.red.shade300)),
+            ],
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (!bridge.isRunning)
+                  FilledButton.icon(
+                    onPressed: () async { await bridge.start(); setState(() {}); },
+                    icon: const Icon(Icons.play_arrow, size: 16),
+                    label: const Text('Start Bridge'),
+                  )
+                else
+                  FilledButton.icon(
+                    onPressed: () async { await bridge.stop(); setState(() {}); },
+                    icon: const Icon(Icons.stop, size: 16),
+                    label: const Text('Stop Bridge'),
+                    style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  ),
+              ],
+            ),
+            if (bridge.isRunning)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text('Logs auto-forwarded to Mattermost',
+                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
