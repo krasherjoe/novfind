@@ -104,12 +104,20 @@ class MattermostDebugBridge {
 
   void _onSshStatus() {
     if (!_running) return;
-    final now = DateTime.now();
     if (sshStatus.value == SshStatus.configured) {
       _pendingLogs.add('SSH: ✓ connected');
+      _sendUrgent('🔌 SSH tunnel connected - ICE API accessible via localhost:8100');
     } else {
       _pendingLogs.add('SSH: disconnected');
+      _sendUrgent('🔌 SSH tunnel disconnected - use !opencode commands via MM');
     }
+  }
+
+  Future<void> _sendUrgent(String text) async {
+    if (_api == null) return;
+    try {
+      await _api!.sendMessage(text);
+    } catch (_) {}
   }
 
   void _onIceStatus() {
@@ -232,7 +240,9 @@ class MattermostDebugBridge {
               final svc = SearchService(query: query);
               final results = await svc.search(keyword);
               if (results.isEmpty) {
-                result = 'No results for "$keyword"';
+                final sshInfo = SshTunnelService.instance.isRunning
+                    ? '' : '\n\nSSH offline - results limited to MM bridge.\nUse !opencode ssh.connect to enable direct API access.';
+                result = 'No results for "$keyword"$sshInfo';
               } else {
                 result = 'Results for "$keyword" (${results.length}):\n';
                 for (var i = 0; i < results.length && i < 10; i++) {
@@ -318,7 +328,7 @@ class MattermostDebugBridge {
   }
 
   String _helpText() {
-    return 'Commands:\n'
+    return 'Commands (all work without SSH):\n'
         'search <keyword> | help\n'
         'ssh.status | connect | disconnect | log [n] | config\n'
         'ice.status | debug | start [port] | stop | restart [port]\n'
