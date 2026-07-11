@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum IceStatus { online, offline }
@@ -7,7 +10,6 @@ enum SshStatus { configured, unconfigured }
 final iceStatus = ValueNotifier<IceStatus>(IceStatus.offline);
 final sshStatus = ValueNotifier<SshStatus>(SshStatus.unconfigured);
 
-// Derived boolean notifiers for StatusDot (always valid, never recreated)
 final isIceOnline = ValueNotifier<bool>(false);
 final isSshConfigured = ValueNotifier<bool>(false);
 
@@ -19,7 +21,6 @@ void _syncSshStatus() {
   isSshConfigured.value = sshStatus.value == SshStatus.configured;
 }
 
-// Initialize listeners (call once at startup)
 void initConnectionStatus() {
   _syncIceStatus();
   _syncSshStatus();
@@ -28,9 +29,18 @@ void initConnectionStatus() {
 }
 
 Future<void> updateSshStatus() async {
-  final prefs = await SharedPreferences.getInstance();
-  final hasConfig = prefs.containsKey('ssh_config');
-  final hasKey = prefs.containsKey('ssh_key');
-  sshStatus.value =
-      (hasConfig || hasKey) ? SshStatus.configured : SshStatus.unconfigured;
+  try {
+    final dir = await getApplicationDocumentsDirectory();
+    final sshDir = Directory('${dir.path}/.ssh');
+    final configFile = File('${sshDir.path}/config');
+    final keyFile = File('${sshDir.path}/id_ed25519');
+
+    final configExists = await configFile.exists();
+    final keyExists = await keyFile.exists();
+
+    sshStatus.value =
+        (configExists || keyExists) ? SshStatus.configured : SshStatus.unconfigured;
+  } catch (_) {
+    sshStatus.value = SshStatus.unconfigured;
+  }
 }
