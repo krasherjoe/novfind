@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../plugins/ice/ice_api_server.dart';
 import '../../plugins/ice/ice_logger.dart';
+import '../../plugins/ice/ssh_logger.dart';
 import '../../providers/connection_status.dart' show isIceOnline, isSshConfigured, updateSshStatus;
 import '../../services/ssh_tunnel_service.dart';
 import '../widgets/status_dot.dart';
@@ -218,6 +219,8 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
           const SizedBox(height: 16),
           _buildSshKeyCard(cs),
           const SizedBox(height: 16),
+          _buildSshLogCard(cs),
+          const SizedBox(height: 16),
           _buildEndpointsCard(cs),
           if (_statusMessage != null) ...[
             const SizedBox(height: 12),
@@ -393,6 +396,72 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
                 hintStyle: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withValues(alpha: 0.4), fontFamily: 'monospace'),
                 contentPadding: const EdgeInsets.all(12),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSshLogCard(ColorScheme cs) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('SSH Log', style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => SshLogger.instance.clear(),
+                  child: const Text('Clear', style: TextStyle(fontSize: 11)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ValueListenableBuilder<List<SshLogEntry>>(
+              valueListenable: SshLogger.instance,
+              builder: (context, entries, _) {
+                if (entries.isEmpty) {
+                  return Text('No SSH log yet',
+                      style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant));
+                }
+                final reversed = entries.reversed.take(80).toList().reversed.toList();
+                return Container(
+                  constraints: const BoxConstraints(maxHeight: 300),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: reversed.length,
+                    itemBuilder: (context, index) {
+                      final entry = reversed[index];
+                      final color = switch (entry.level) {
+                        SshLogLevel.error => Colors.red.shade300,
+                        SshLogLevel.warn => Colors.orange.shade300,
+                        SshLogLevel.data => Colors.grey.shade400,
+                        SshLogLevel.info => Colors.green.shade300,
+                      };
+                      final ts = '${entry.timestamp.hour.toString().padLeft(2, '0')}:${entry.timestamp.minute.toString().padLeft(2, '0')}:${entry.timestamp.second.toString().padLeft(2, '0')}';
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                        child: Text(
+                          '$ts ${entry.message}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontFamily: 'monospace',
+                            color: color,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           ],
         ),
