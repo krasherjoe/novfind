@@ -15,7 +15,7 @@
 ### 検索実行
 
 - [ ] **SRCH-01**: ユーザーは特定のキーワードを選択して検索を実行できる
-- [ ] **SRCH-02**: 検索には`.env`のsite:演算子クエリが使用される
+- [x] **SRCH-02**: 検索にはsite:演算子クエリが使用される（assets/search_query.txt）
 - [ ] **SRCH-03**: 検索中はローディングインジケータが表示される
 - [ ] **SRCH-04**: 検索エラー時はユーザーに適切なエラーが表示される
 - [ ] **SRCH-05**: 空の結果時はその旨が表示される
@@ -79,7 +79,7 @@
 | KW-02 | Phase 4: Keyword Management | Complete ✓ |
 | KW-03 | Phase 4: Keyword Management | Complete ✓ |
 | KW-04 | Phase 4: Keyword Management | Complete ✓ |
-| SRCH-02 | Phase 5: Scraping Engine Prototype | Pending |
+| SRCH-02 | Phase 5: Scraping Engine Prototype | Complete ✓ |
 | SRCH-01 | Phase 6: Search Execution & States | Pending |
 | SRCH-03 | Phase 6: Search Execution & States | Pending |
 | SRCH-04 | Phase 6: Search Execution & States | Pending |

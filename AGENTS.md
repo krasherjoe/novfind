@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-**Phase 5: Scraping Engine Prototype** — Google検索スクレイピングの隔離プロトタイプ（最高リスク）
+**Phase 6: Search Execution & States** — キーワード選択→検索実行、ローディング/エラー/空状態UI
 
 ## Key Files
 
