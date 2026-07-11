@@ -12,6 +12,7 @@ import '../../providers/search_history_provider.dart';
 import '../../providers/site_filter_provider.dart';
 import '../../providers/theme_provider.dart' show themeNotifier, toggleTheme;
 import '../../services/search_service.dart';
+import '../../services/ssh_tunnel_service.dart';
 import 'ice_logger.dart';
 import 'ice_state_collector.dart';
 
@@ -108,6 +109,9 @@ class IceApiServer {
             'version': '1.0.0',
             'uptime': _formatUptime(),
           });
+
+        case '/debug':
+          await _json(request.response, await _collectDebugInfo());
 
         case '/state':
           final state = await _collectFullState();
@@ -235,11 +239,49 @@ class IceApiServer {
         'disabledCount': disabled.length,
         'disabled': disabled.toList(),
       };
+      base['sshTunnel'] = {
+        'running': SshTunnelService.instance.isRunning,
+        'lastError': SshTunnelService.instance.lastError,
+      };
     } catch (e) {
       base['_error'] = e.toString();
     }
 
     return base;
+  }
+
+  Future<Map<String, dynamic>> _collectDebugInfo() async {
+    final ssh = SshTunnelService.instance;
+    return {
+      'server': {
+        'running': _running,
+        'port': port,
+        'bindAddress': '127.0.0.1',
+        'uptime': _formatUptime(),
+        'startTime': _startedAt.toIso8601String(),
+      },
+      'sshTunnel': {
+        'running': ssh.isRunning,
+        'lastError': ssh.lastError,
+        'command': await ssh.getSshCommand(),
+      },
+      'network': {
+        'loopback': '127.0.0.1',
+        'port': port,
+        'note': 'ICE API listens on loopback only. SSH tunnel forwards remote:8100 -> localhost:8100',
+      },
+      'endpoints': [
+        'GET /health - Health check',
+        'GET /debug - This debug info',
+        'GET /state - Full app state',
+        'GET /errors - Error logs',
+        'DELETE /errors - Clear logs',
+        'POST /command - Execute command',
+        'GET /fs/read?path=... - Read file',
+        'POST /fs/write - Write file',
+        'GET /fs/list?path=... - List directory',
+      ],
+    };
   }
 
   Future<void> _handleCommand(HttpRequest request) async {
