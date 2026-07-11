@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../data/services/google_search_service.dart';
 import '../../data/services/site_label_service.dart';
@@ -129,8 +130,11 @@ class SearchResultsScreen extends ConsumerWidget {
   }
 
   void _shareResult(BuildContext context, SearchResult result) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${result.title} を共有します')),
+    SharePlus.instance.share(
+      ShareParams(
+        text: result.title,
+        subject: result.url,
+      ),
     );
   }
 }

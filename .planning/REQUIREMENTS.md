@@ -25,12 +25,12 @@
 
 - [x] **RES-01**: 検索結果はタイトルとURLの一覧で表示される
 - [x] **RES-02**: 各結果には取得元サイト名が表示される
-- [ ] **RES-03**: 結果はタップ可能でAndroid共有シートが開く
+- [x] **RES-03**: 結果はタップ可能でAndroid共有シートが開く
 
 ### 共有
 
-- [ ] **SHARE-01**: 結果タップでAndroid共有シート（ACTION_SEND）が開く
-- [ ] **SHARE-02**: 共有シートから任意のアプリにURLを渡せる
+- [x] **SHARE-01**: 結果タップでAndroid共有シート（ACTION_SEND）が開く
+- [x] **SHARE-02**: 共有シートから任意のアプリにURLを渡せる
 
 ### プロジェクト基盤
 
@@ -87,13 +87,14 @@
 | RES-01 | Phase 7: Results Display | Complete ✓ |
 | SRCH-06 | Phase 7: Results Display | Complete ✓ |
 | RES-02 | Phase 8: Source Site Labels | Complete ✓ |
-| RES-03 | Phase 9: Share Integration | Pending |
-| SHARE-01 | Phase 9: Share Integration | Pending |
-| SHARE-02 | Phase 9: Share Integration | Pending |
+| RES-03 | Phase 9: Share Integration | Complete ✓ |
+| SHARE-01 | Phase 9: Share Integration | Complete ✓ |
+| SHARE-02 | Phase 9: Share Integration | Complete ✓ |
 
 **Coverage:**
 - v1 requirements: 20 total
 - Mapped to phases: 20
+- Complete: 20 ✓
 - Unmapped: 0 ✓
 
 ---
