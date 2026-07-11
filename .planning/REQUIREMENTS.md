@@ -7,10 +7,10 @@
 
 ### キーワード管理
 
-- [ ] **KW-01**: ユーザーは検索キーワードをアプリに登録できる
-- [ ] **KW-02**: ユーザーは登録済みキーワードの一覧を表示できる
-- [ ] **KW-03**: ユーザーは登録済みキーワードを削除できる
-- [ ] **KW-04**: キーワードはアプリ再起後も永続化される
+- [x] **KW-01**: ユーザーは検索キーワードをアプリに登録できる
+- [x] **KW-02**: ユーザーは登録済みキーワードの一覧を表示できる
+- [x] **KW-03**: ユーザーは登録済みキーワードを削除できる
+- [x] **KW-04**: キーワードはアプリ再起後も永続化される
 
 ### 検索実行
 
@@ -75,10 +75,10 @@
 | BASE-03 | Phase 2: Android Platform Config | Complete ✓ |
 | BASE-04 | Phase 2: Android Platform Config | Complete ✓ |
 | BASE-05 | Phase 3: Environment & Dependencies | Complete ✓ |
-| KW-01 | Phase 4: Keyword Management | Pending |
-| KW-02 | Phase 4: Keyword Management | Pending |
-| KW-03 | Phase 4: Keyword Management | Pending |
-| KW-04 | Phase 4: Keyword Management | Pending |
+| KW-01 | Phase 4: Keyword Management | Complete ✓ |
+| KW-02 | Phase 4: Keyword Management | Complete ✓ |
+| KW-03 | Phase 4: Keyword Management | Complete ✓ |
+| KW-04 | Phase 4: Keyword Management | Complete ✓ |
 | SRCH-02 | Phase 5: Scraping Engine Prototype | Pending |
 | SRCH-01 | Phase 6: Search Execution & States | Pending |
 | SRCH-03 | Phase 6: Search Execution & States | Pending |

@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-**Phase 4: Keyword Management** — キーワードCRUD + SharedPreferences永続化
+**Phase 5: Scraping Engine Prototype** — Google検索スクレイピングの隔離プロトタイプ（最高リスク）
 
 ## Key Files
 

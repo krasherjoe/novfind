@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-07-11)
 
 **Core value:** 「Google検索にsite:演算子を手動で貼り付ける」を、キーワード登録→ワンタップ検索に置き換える
-**Current focus:** Phase 3 — Environment & Dependencies
+**Current focus:** Phase 4 — Keyword Management
 
 ## Current Position
 
-Phase: 4 of 9 (Keyword Management)
+Phase: 5 of 9 (Scraping Engine Prototype)
 Plan: 0 of 0 in current phase
-Status: Phase 3 complete
-Last activity: 2026-07-11 — Phase 3: Environment & Dependencies complete
+Status: Phase 4 complete
+Last activity: 2026-07-11 — Phase 4: Keyword Management complete
 
-Progress: [███░░░░░░░] 33%
+Progress: [████░░░░░░] 44%
 
 ## Performance Metrics
 
