@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app_service.dart';
@@ -63,7 +64,12 @@ class MattermostDebugBridge {
 
     try {
       await _api!.getChannelId();
-      await _api!.sendMessage('🟢 novfind bridge started');
+      String version = '?';
+      try {
+        final info = await PackageInfo.fromPlatform();
+        version = '${info.version}(${info.buildNumber})';
+      } catch (_) {}
+      await _api!.sendMessage('🟢 novfind v$version bridge started');
     } catch (e) {
       _lastError = 'Failed to connect to Mattermost: $e';
       debugPrint('[MMB] $_lastError');
@@ -295,10 +301,17 @@ class MattermostDebugBridge {
 
   Future<String> _collectDebugString() async {
     final tunnel = SshTunnelService.instance;
-    return 'Server: ${iceApiServer.isRunning ? "running" : "stopped"}'
+    String version = '?';
+    try {
+      final info = await PackageInfo.fromPlatform();
+      version = '${info.version}(${info.buildNumber})';
+    } catch (_) {}
+    return 'Version: $version'
+        '\nServer: ${iceApiServer.isRunning ? "running" : "stopped"}'
         '\nPort: ${iceApiServer.port}'
         '\nSSH: ${tunnel.isRunning ? "connected" : "disconnected"}'
-        '\nSSH error: ${tunnel.lastError ?? "(none)"}';
+        '\nSSH error: ${tunnel.lastError ?? "(none)"}'
+        '\nSearch: SmartSearchService (dio + HeadlessWebView)';
   }
 
   String _helpText() {
