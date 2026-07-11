@@ -32,43 +32,7 @@ class SearchResultsScreen extends ConsumerWidget {
             ],
           ),
         ),
-        error: (error, _) {
-          String message;
-          if (error is SearchException) {
-            message = switch (error.type) {
-              SearchErrorType.network => 'ネットワークエラーが発生しました',
-              SearchErrorType.captcha => 'CAPTCHA認証が必要です\nしばらく待ってから再試行してください',
-              SearchErrorType.empty => '結果が見つかりませんでした',
-              SearchErrorType.parse => '検索結果の解析に失敗しました',
-              SearchErrorType.timeout => 'タイムアウトしました\n電波の良い場所で再試行してください',
-            };
-          } else {
-            message = 'エラーが発生しました: $error';
-          }
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(
-                    message,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: () => ref.invalidate(searchResultsProvider(keyword)),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('再試行'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+        error: (error, _) => _buildErrorView(context, ref, error),
         data: (results) {
           if (results.isEmpty) {
             return const Center(
@@ -129,11 +93,158 @@ class SearchResultsScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildErrorView(BuildContext context, WidgetRef ref, Object error) {
+    final searchUrl = (error is SearchException) ? error.searchUrl : null;
+    final htmlSnippet = (error is SearchException) ? error.htmlSnippet : null;
+    final isSearchException = error is SearchException;
+    final errorType = isSearchException ? error.type : null;
+
+    String userMessage;
+    if (isSearchException && errorType != null) {
+      userMessage = switch (errorType) {
+        SearchErrorType.network => 'ネットワークエラーが発生しました',
+        SearchErrorType.captcha => 'CAPTCHA認証が必要です\nしばらく待ってから再試行してください',
+        SearchErrorType.empty => '結果が見つかりませんでした',
+        SearchErrorType.parse => '検索結果の解析に失敗しました',
+        SearchErrorType.timeout => 'タイムアウトしました\n電波の良い場所で再試行してください',
+      };
+    } else {
+      userMessage = 'エラーが発生しました: $error';
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          const SizedBox(height: 32),
+          Icon(
+            isSearchException && errorType == SearchErrorType.captcha
+                ? Icons.security
+                : Icons.error_outline,
+            size: 64,
+            color: Colors.red,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            userMessage,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () => ref.invalidate(searchResultsProvider(keyword)),
+            icon: const Icon(Icons.refresh),
+            label: const Text('再試行'),
+          ),
+          if (isSearchException) ...[
+            const SizedBox(height: 24),
+            _DebugPanel(
+              error: error as SearchException,
+              searchUrl: searchUrl,
+              htmlSnippet: htmlSnippet,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   void _shareResult(BuildContext context, SearchResult result) {
     SharePlus.instance.share(
       ShareParams(
-        text: result.title,
-        subject: result.url,
+        text: '${result.title} - ${result.url}',
+      ),
+    );
+  }
+}
+
+class _DebugPanel extends StatelessWidget {
+  final SearchException error;
+  final String? searchUrl;
+  final String? htmlSnippet;
+
+  const _DebugPanel({
+    required this.error,
+    this.searchUrl,
+    this.htmlSnippet,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade900,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '🔍 DEBUG',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Colors.greenAccent,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _debugLine(context, 'Error', '${error.type}: ${error.message}'),
+          if (searchUrl != null)
+            _debugLine(context, 'URL', searchUrl!),
+          _debugLine(context, 'h3/anchor', error.message),
+          if (htmlSnippet != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'HTML (先頭500文字):',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade400,
+              ),
+            ),
+            const SizedBox(height: 4),
+            SelectableText(
+              htmlSnippet!,
+              style: TextStyle(
+                fontSize: 9,
+                fontFamily: 'monospace',
+                color: Colors.grey.shade300,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _debugLine(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 60,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade300,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -25,6 +25,10 @@
 - Execute plans with `/gsd-execute-phase N`
 - Use `run: test` after changes
 
+## Remote
+
+- `origin` → `https://github.com/krasherjoe/novfind.git`
+
 ## Stack
 
 - Flutter (Android only for v1)

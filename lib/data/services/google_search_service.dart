@@ -16,14 +16,20 @@ enum SearchErrorType {
   timeout,
 }
 
-typedef SearchResultParser = List<SearchResult> Function(String html);
+List<SearchResult> deduplicateResults(List<SearchResult> results) {
+  final seen = <String>{};
+  return results.where((r) => seen.add(r.url)).toList();
+}
 
 class SearchException implements Exception {
   final SearchErrorType type;
   final String message;
   final dynamic originalError;
+  final String? searchUrl;
+  final String? htmlSnippet;
 
-  const SearchException(this.type, this.message, {this.originalError});
+  const SearchException(this.type, this.message,
+      {this.originalError, this.searchUrl, this.htmlSnippet});
 
   @override
   String toString() => 'SearchException($type): $message';
@@ -78,76 +84,82 @@ class GoogleSearchService {
         url,
         options: Options(
           responseType: ResponseType.plain,
-          extra: {'retry': 2},
         ),
       );
 
       if (response.statusCode == 200) {
-        return parseResults(response.data as String);
+        final html = response.data as String;
+        return parseResults(html, searchUrl: url);
       } else {
         throw SearchException(
           SearchErrorType.network,
           'HTTP ${response.statusCode}',
+          searchUrl: url,
         );
       }
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
         throw SearchException(SearchErrorType.timeout, 'Request timed out',
-            originalError: e);
+            originalError: e, searchUrl: url);
       }
       throw SearchException(SearchErrorType.network, 'Network error',
-          originalError: e);
+          originalError: e, searchUrl: url);
     } catch (e) {
       if (e is SearchException) rethrow;
       throw SearchException(SearchErrorType.parse, 'Unexpected error',
-          originalError: e);
+          originalError: e, searchUrl: url);
     }
   }
 
   @visibleForTesting
-  List<SearchResult> parseResults(String html) {
+  List<SearchResult> parseResults(String html, {String? searchUrl}) {
+    final snippet = html.length > 500 ? html.substring(0, 500) : html;
+
     if (html.contains('captcha') || html.contains('unusual traffic')) {
-      throw SearchException(SearchErrorType.captcha, 'CAPTCHA detected');
+      throw SearchException(SearchErrorType.captcha, 'CAPTCHA detected',
+          searchUrl: searchUrl, htmlSnippet: snippet);
     }
 
     final document = parser.parse(html);
     final results = <SearchResult>[];
-
     final anchors = document.querySelectorAll('a[href^="/url?q="]');
+    final h3s = document.querySelectorAll('h3');
+
     for (final anchor in anchors) {
       final href = anchor.attributes['href'];
       if (href == null) continue;
 
-      final url = Uri.tryParse(href);
-      if (url == null) continue;
+      final parsed = Uri.tryParse(href);
+      if (parsed == null) continue;
 
-      final queryParams = url.queryParameters;
-      final targetUrl = queryParams['q'];
+      final targetUrl = parsed.queryParameters['q'];
       if (targetUrl == null) continue;
-      if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
-        final h3 = anchor.querySelector('h3');
-        if (h3 == null) continue;
+      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) continue;
 
-        final title = h3.text.trim();
-        if (title.isEmpty) continue;
+      final h3 = anchor.querySelector('h3');
+      if (h3 == null) continue;
 
-        final sourceDomain = Uri.tryParse(targetUrl)?.host ?? '';
-        if (sourceDomain.isEmpty) continue;
+      final title = h3.text.trim();
+      if (title.isEmpty) continue;
 
-        results.add(SearchResult(
-          title: title,
-          url: targetUrl,
-          sourceDomain: sourceDomain,
-        ));
-      }
+      final sourceDomain = Uri.tryParse(targetUrl)?.host ?? '';
+      if (sourceDomain.isEmpty) continue;
+
+      results.add(SearchResult(
+        title: title,
+        url: targetUrl,
+        sourceDomain: sourceDomain,
+      ));
     }
 
     if (results.isEmpty) {
-      final h3s = document.querySelectorAll('h3');
-      if (h3s.isEmpty) {
-        throw SearchException(SearchErrorType.empty, 'No results found');
-      }
+      throw SearchException(
+        SearchErrorType.empty,
+        'h3=${h3s.length} anchors=${anchors.length}',
+        searchUrl: searchUrl,
+        htmlSnippet: snippet,
+      );
     }
 
     return results;
