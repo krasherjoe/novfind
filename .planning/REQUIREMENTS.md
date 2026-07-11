@@ -34,10 +34,10 @@
 
 ### プロジェクト基盤
 
-- [ ] **BASE-01**: FlutterプロジェクトがAndroidターゲットでセットアップされる
-- [ ] **BASE-02**: Android 9+のNetworkSecurityConfigが設定される
-- [ ] **BASE-03**: Android 11+のpackage visibility（<queries>）が設定される
-- [ ] **BASE-04**: INTERNETパーミッションが設定される
+- [x] **BASE-01**: FlutterプロジェクトがAndroidターゲットでセットアップされる
+- [x] **BASE-02**: Android 9+のNetworkSecurityConfigが設定される
+- [x] **BASE-03**: Android 11+のpackage visibility（<queries>）が設定される
+- [x] **BASE-04**: INTERNETパーミッションが設定される
 - [ ] **BASE-05**: `.env`ファイルからクエリ文字列が読み込まれる
 
 ## v2 Requirements
@@ -71,9 +71,9 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | BASE-01 | Phase 1: Flutter Scaffold | Complete ✓ |
-| BASE-02 | Phase 2: Android Platform Config | Pending |
-| BASE-03 | Phase 2: Android Platform Config | Pending |
-| BASE-04 | Phase 2: Android Platform Config | Pending |
+| BASE-02 | Phase 2: Android Platform Config | Complete ✓ |
+| BASE-03 | Phase 2: Android Platform Config | Complete ✓ |
+| BASE-04 | Phase 2: Android Platform Config | Complete ✓ |
 | BASE-05 | Phase 3: Environment & Dependencies | Pending |
 | KW-01 | Phase 4: Keyword Management | Pending |
 | KW-02 | Phase 4: Keyword Management | Pending |

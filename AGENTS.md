@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-**Phase 2: Android Platform Config** — NetworkSecurityConfig/INTERNET/package visibility設定
+**Phase 3: Environment & Dependencies** — .env読み込み、pubspec依存関係
 
 ## Key Files
 

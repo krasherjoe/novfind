@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-07-11)
 
 **Core value:** 「Google検索にsite:演算子を手動で貼り付ける」を、キーワード登録→ワンタップ検索に置き換える
-**Current focus:** Phase 1 — Flutter Scaffold
+**Current focus:** Phase 2 — Android Platform Config
 
 ## Current Position
 
-Phase: 2 of 9 (Android Platform Config)
+Phase: 3 of 9 (Environment & Dependencies)
 Plan: 0 of 0 in current phase
-Status: Phase 1 complete
-Last activity: 2026-07-11 — Phase 1: Flutter Scaffold complete
+Status: Phase 2 complete
+Last activity: 2026-07-11 — Phase 2: Android Platform Config complete
 
-Progress: [██░░░░░░░░] 11%
+Progress: [██░░░░░░░░] 22%
 
 ## Performance Metrics
 
