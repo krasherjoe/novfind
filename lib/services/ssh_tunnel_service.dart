@@ -25,30 +25,63 @@ class SshTunnelService {
 
   List<Map<String, String>> _parseSshConfig(String config) {
     final sections = <Map<String, String>>[];
+    final defaults = <String, String>{};
     Map<String, String>? current;
+    bool hasHostSection = false;
+
     for (final rawLine in config.split('\n')) {
       final line = rawLine.trim();
       if (line.isEmpty || line.startsWith('#')) continue;
       final parts = line.split(RegExp(r'\s+'));
-      if (parts.length >= 2 && parts[0].toLowerCase() == 'host') {
+      if (parts.length < 2) continue;
+
+      if (parts[0].toLowerCase() == 'host') {
         current = <String, String>{'host': parts.sublist(1).join(' ')};
         sections.add(current);
+        hasHostSection = true;
         continue;
       }
-      if (current == null) continue;
-      current[parts[0].toLowerCase()] = parts.sublist(1).join(' ');
+
+      if (current != null) {
+        current[parts[0].toLowerCase()] = parts.sublist(1).join(' ');
+      } else {
+        // Properties before any Host section → defaults
+        defaults[parts[0].toLowerCase()] = parts.sublist(1).join(' ');
+      }
     }
+
+    // If no Host sections at all, embed defaults as the single section
+    if (!hasHostSection && defaults.isNotEmpty) {
+      sections.add(Map<String, String>.from(defaults));
+    }
+
+    // Apply defaults to every section (fill missing values)
+    if (defaults.isNotEmpty) {
+      for (final section in sections) {
+        defaults.forEach((k, v) {
+          section.putIfAbsent(k, () => v);
+        });
+      }
+    }
+
     return sections;
   }
 
   Map<String, String>? _findHostConfig(List<Map<String, String>> sections, String alias) {
-    Map<String, String>? wildcard;
+    if (sections.isEmpty) return null;
+
+    // 1) exact match
     for (final section in sections) {
-      final pattern = section['host'] ?? '';
-      if (pattern == alias) return section;
-      if (pattern == '*') wildcard = section;
+      if (section['host'] == alias) return section;
     }
-    return wildcard;
+
+    // 2) wildcard
+    for (final section in sections) {
+      if (section['host'] == '*') return section;
+    }
+
+    // 3) first section (regardless of name)
+    return sections.first;
   }
 
   (String host, int port, String user) _parseJumpTarget(String value) {
@@ -122,18 +155,23 @@ class SshTunnelService {
 
       final hostConfig = _findHostConfig(sections, 'opencode-box');
       if (hostConfig == null) {
-        _lastError = 'No SSH config section for "opencode-box"';
+        _lastError = 'No SSH config sections found';
         SshLogger.e(_lastError!);
+        SshLogger.d('--- Raw config ---');
+        for (final line in configText.split('\n')) {
+          if (line.trim().isNotEmpty) SshLogger.d('  $line');
+        }
+        SshLogger.d('--- End config ---');
         return;
       }
 
-      final hostName = hostConfig['hostname'] ?? '';
+      final hostName = hostConfig['hostname'] ?? hostConfig['host'] ?? '';
       final port = int.tryParse(hostConfig['port'] ?? '22') ?? 22;
       final userName = hostConfig['user'] ?? 'root';
       final proxyJump = hostConfig['proxyjump'];
 
-      if (hostName.isEmpty) {
-        _lastError = 'Missing HostName in config for opencode-box';
+      if (hostName.isEmpty || hostName == '*') {
+        _lastError = 'Missing HostName in SSH config';
         SshLogger.e(_lastError!);
         return;
       }
