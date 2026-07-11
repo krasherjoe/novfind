@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,6 +23,7 @@ class IceApiServer {
   int port;
   bool _running = false;
   final DateTime _startedAt = DateTime.now();
+  String _appVersion = 'unknown';
 
   IceApiServer({this.port = 8100}) {
     _collector = IceStateCollector();
@@ -30,6 +32,8 @@ class IceApiServer {
   Future<void> start() async {
     if (_running) return;
     try {
+      final info = await PackageInfo.fromPlatform();
+      _appVersion = '${info.version}(${info.buildNumber})';
       _server = await HttpServer.bind(InternetAddress.loopbackIPv4, port);
       _running = true;
       iceStatus.value = IceStatus.online;
@@ -105,7 +109,7 @@ class IceApiServer {
           await _json(request.response, {
             'status': 'ok',
             'service': 'novfind ICE API',
-            'version': '1.0.0',
+            'version': _appVersion,
             'uptime': _formatUptime(),
           });
 
@@ -179,7 +183,7 @@ class IceApiServer {
         default:
           await _json(request.response, {
             'service': 'novfind ICE API',
-            'version': '1.0.0',
+            'version': _appVersion,
             'endpoints': [
               'GET  /health',
               'GET  /state',

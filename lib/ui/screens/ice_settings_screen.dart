@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../plugins/ice/ice_api_server.dart';
@@ -35,12 +36,14 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
   String? _sshDirPath;
   bool _configExists = false;
   bool _keyExists = false;
+  String _appVersion = '?';
 
   @override
   void initState() {
     super.initState();
     _running = widget.apiServer.isRunning;
     _portController.text = widget.apiServer.port.toString();
+    _loadVersion();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadSshFiles();
     });
@@ -84,6 +87,14 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
     _keyDebounce = Timer(const Duration(milliseconds: 800), () {
       _saveSshKey();
     });
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      _appVersion = info.version;
+      if (mounted) setState(() {});
+    } catch (_) {}
   }
 
   Future<void> _loadSshFiles() async {
@@ -280,7 +291,7 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
                 Text(_running ? 'API Running' : 'API Stopped',
                     style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
                 const Spacer(),
-                Text('v1.0.0', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                Text('v$_appVersion', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
               ],
             ),
             const SizedBox(height: 12),
