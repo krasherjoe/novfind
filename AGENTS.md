@@ -25,6 +25,12 @@
 - Execute plans with `/gsd-execute-phase N`
 - Use `run: test` after changes
 
+## Versioning
+
+- Format: `major.minor.patch`
+- Patch: +1 each release, max 999
+- Minor: +1 when patch reaches 999
+
 ## Remote
 
 - `origin` → `https://github.com/krasherjoe/novfind.git`
