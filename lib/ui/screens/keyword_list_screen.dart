@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../models/keyword.dart';
+import '../../models/preset.dart';
 import '../../providers/keywords_provider.dart';
+import '../../providers/preset_provider.dart';
 import '../../providers/search_history_provider.dart';
 import '../../providers/theme_provider.dart' show themeNotifier, toggleTheme;
 
@@ -52,11 +54,16 @@ class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
               onPressed: _searchSelected,
               tooltip: 'AND検索 (${_selectedIds.length}個)',
             ),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () => context.go('/sites'),
-            tooltip: 'サイトフィルター',
-          ),
+            IconButton(
+              icon: const Icon(Icons.bookmark),
+              onPressed: () => _showPresetDialog(context),
+              tooltip: 'プリセット',
+            ),
+            IconButton(
+              icon: const Icon(Icons.filter_list),
+              onPressed: () => context.go('/sites'),
+              tooltip: 'サイトフィルター',
+            ),
           ValueListenableBuilder<ThemeMode>(
             valueListenable: themeNotifier,
             builder: (context, mode, _) {
@@ -107,6 +114,100 @@ class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPresetDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Consumer(
+          builder: (context, ref, _) {
+            final presetsAsync = ref.watch(presetProvider);
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('プリセット', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                presetsAsync.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (presets) {
+                    if (presets.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Text('プリセットがありません\nキーワードを選択して保存できます'),
+                      );
+                    }
+                    return Column(
+                      children: presets.map((preset) {
+                        return ListTile(
+                          title: Text(preset.name),
+                          subtitle: Text(preset.query, maxLines: 1, overflow: TextOverflow.ellipsis),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 20),
+                            onPressed: () => ref.read(presetProvider.notifier).deletePreset(preset.id),
+                          ),
+                          onTap: () {
+                            ref.read(searchHistoryProvider.notifier).addEntry(preset.query);
+                            Navigator.of(ctx).pop();
+                            context.go('/search/${Uri.encodeComponent(preset.query)}');
+                          },
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+                if (_selectedIds.isNotEmpty)
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      _showSavePresetDialog(context);
+                    },
+                    icon: const Icon(Icons.save),
+                    label: const Text('選択中をプリセット保存'),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showSavePresetDialog(BuildContext context) {
+    final keywords = ref.read(keywordsProvider).asData?.value ?? [];
+    final texts = keywords.where((k) => _selectedIds.contains(k.id)).map((k) => k.text);
+    final query = texts.join(' ');
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('プリセット名'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '例: 異世界転生'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                ref.read(presetProvider.notifier).addPreset(name, query);
+              }
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('保存'),
           ),
         ],
       ),
