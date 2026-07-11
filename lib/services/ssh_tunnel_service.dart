@@ -3,10 +3,9 @@ import 'dart:io';
 
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 
-import '../providers/connection_status.dart' show SshStatus, sshStatus;
 import '../plugins/ice/ssh_logger.dart';
+import '../providers/connection_status.dart' show SshStatus, sshStatus, getSshDir;
 
 class SshTunnelService {
   static final SshTunnelService instance = SshTunnelService._();
@@ -23,13 +22,6 @@ class SshTunnelService {
   String? get lastError => _lastError;
 
   SshTunnelService._();
-
-  Future<String> getSshDir() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final path = '${dir.path}/.ssh';
-    SshLogger.d('SSH directory: $path');
-    return path;
-  }
 
   List<Map<String, String>> _parseSshConfig(String config) {
     final sections = <Map<String, String>>[];

@@ -4,13 +4,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../plugins/ice/ice_api_server.dart';
 import '../../plugins/ice/ice_logger.dart';
 import '../../plugins/ice/ssh_logger.dart';
-import '../../providers/connection_status.dart' show isIceOnline, isSshConfigured, updateSshStatus;
+import '../../providers/connection_status.dart' show isIceOnline, isSshConfigured, getSshDir, updateSshStatus;
 import '../../services/ssh_tunnel_service.dart';
 import '../widgets/status_dot.dart';
 
@@ -40,7 +39,9 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
     super.initState();
     _running = widget.apiServer.isRunning;
     _portController.text = widget.apiServer.port.toString();
-    _loadSshFiles();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSshFiles();
+    });
   }
 
   @override
@@ -67,14 +68,9 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
     });
   }
 
-  Future<String> _getSshDir() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return '${dir.path}/.ssh';
-  }
-
   Future<void> _loadSshFiles() async {
     try {
-      final sshDir = await _getSshDir();
+      final sshDir = await getSshDir();
       _sshDirPath = sshDir;
 
       final configFile = File('$sshDir/config');
@@ -104,7 +100,7 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
 
   Future<void> _saveSshConfig() async {
     try {
-      final sshDir = await _getSshDir();
+      final sshDir = await getSshDir();
       final dir = Directory(sshDir);
       await dir.create(recursive: true);
 
@@ -136,7 +132,7 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
 
   Future<void> _saveSshKey() async {
     try {
-      final sshDir = await _getSshDir();
+      final sshDir = await getSshDir();
       final dir = Directory(sshDir);
       await dir.create(recursive: true);
 
