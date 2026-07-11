@@ -17,7 +17,7 @@ Future<void> main() async {
   initConnectionStatus();
   await updateSshStatus();
   WidgetService.initialize();
-  iceApiServer.start();
+  await iceApiServer.start();
   WidgetService.updateWidget();
   runApp(const ProviderScope(child: NovfindApp()));
 }

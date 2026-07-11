@@ -13,6 +13,9 @@ final isSshConfigured = ValueNotifier<bool>(false);
 
 String? _foundSshDir;
 
+/// Clears the cached SSH directory so the next [getSshDir] call re-scans.
+void resetSshDirCache() => _foundSshDir = null;
+
 /// Returns the directory where SSH config/key files were FOUND.
 /// If not found, returns the default app-private path.
 Future<String> getSshDir() async {
@@ -63,7 +66,7 @@ Future<bool> _hasSshFiles(String dir) async {
   try {
     final hasConfig = await File('$dir/config').exists();
     final hasKey = await File('$dir/id_ed25519').exists();
-    return hasConfig || hasKey;
+    return hasConfig && hasKey;
   } catch (_) {
     return false;
   }

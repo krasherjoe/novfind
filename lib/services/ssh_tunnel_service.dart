@@ -5,7 +5,7 @@ import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/foundation.dart';
 
 import '../plugins/ice/ssh_logger.dart';
-import '../providers/connection_status.dart' show SshStatus, sshStatus, getSshDir;
+import '../providers/connection_status.dart' show SshStatus, sshStatus, getSshDir, resetSshDirCache;
 
 class SshTunnelService {
   static final SshTunnelService instance = SshTunnelService._();
@@ -84,9 +84,11 @@ class SshTunnelService {
     return sections.first;
   }
 
-  (String host, int port, String user) _parseJumpTarget(String value) {
+  /// Parses a ProxyJump target string.
+  /// Falls back to [defaultUser] when no `user@` prefix is present in the value.
+  (String host, int port, String user) _parseJumpTarget(String value, {String defaultUser = 'root'}) {
     var target = value.trim();
-    String user = 'root';
+    String user = defaultUser;
     String host;
     int port = 22;
     final atIdx = target.lastIndexOf('@');
@@ -113,6 +115,9 @@ class SshTunnelService {
     if (_running) return;
     _lastError = null;
     SshLogger.i('=== SSH Tunnel Start ===');
+
+    // Always re-scan for SSH files in case they were added/moved since last call.
+    resetSshDirCache();
 
     try {
       final sshDir = await getSshDir();
@@ -236,7 +241,9 @@ class SshTunnelService {
     required String label,
   }) async {
     if (proxyJump != null && proxyJump.isNotEmpty) {
-      final (jumpHost, jumpPort, jumpUser) = _parseJumpTarget(proxyJump);
+      // Use the target user as the default for the jump host when no explicit
+      // user@host notation is present in the ProxyJump value.
+      final (jumpHost, jumpPort, jumpUser) = _parseJumpTarget(proxyJump, defaultUser: user);
       SshLogger.i('=== ProxyJump: $jumpUser@$jumpHost:$jumpPort → $user@$host:$port ===');
 
       SshLogger.i('[$label] Connecting to jump host $jumpHost:$jumpPort');

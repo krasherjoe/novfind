@@ -2,13 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../providers/connection_status.dart';
-import '../../providers/keywords_provider.dart';
-import '../../providers/search_history_provider.dart';
-import '../../providers/search_provider.dart';
-import '../../providers/site_filter_provider.dart';
+import '../../providers/connection_status.dart' show sshStatus, SshStatus, getSshDir;
 import '../../providers/theme_provider.dart' show themeNotifier;
 
 class IceStateCollector {
@@ -58,47 +53,23 @@ class IceStateCollector {
   }
 
   Future<Map<String, dynamic>> _collectSsh() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasConfig = prefs.containsKey('ssh_config');
-    final hasKey = prefs.containsKey('ssh_key');
     final sshDir = await _getSshDir();
+    final configExists = await File('$sshDir/config').exists();
+    final keyExists = await File('$sshDir/id_ed25519').exists();
     return {
       'configured': sshStatus.value == SshStatus.configured,
-      'configExists': hasConfig,
-      'keyExists': hasKey,
+      'configExists': configExists,
+      'keyExists': keyExists,
       'dir': sshDir,
     };
   }
 
   Future<String> _getSshDir() async {
     try {
-      final dir = await _getDocDir();
-      return '${dir.path}/.ssh';
+      return await getSshDir();
     } catch (_) {
       return '(unknown)';
     }
-  }
-
-  Future<Directory> _getDocDir() async {
-    final path = await _getDocPath();
-    return Directory(path);
-  }
-
-  Future<String> _getDocPath() async {
-    try {
-      final dir = await _getApplicationDocumentsDirectory();
-      return dir.path;
-    } catch (_) {
-      return '/storage/emulated/0/Documents';
-    }
-  }
-
-  // プラットフォーム非依存でdocumentsディレクトリを取得
-  static Future<Directory> _getApplicationDocumentsDirectory() async {
-    // dart:io の Directory.systemTemp の親ディレクトリを使うか、
-    // path_provider が使えるならそちらに任せる
-    // ここではシンプルに固定パス
-    return Directory('/storage/emulated/0/Documents');
   }
 
   String _formatUptime() {
