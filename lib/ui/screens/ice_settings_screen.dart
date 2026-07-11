@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../plugins/ice/ice_api_server.dart';
 import '../../plugins/ice/ice_logger.dart';
 import '../../providers/connection_status.dart' show isIceOnline, isSshConfigured, updateSshStatus;
+import '../../services/ssh_tunnel_service.dart';
 import '../widgets/status_dot.dart';
 
 class IceSettingsScreen extends StatefulWidget {
@@ -291,36 +292,7 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
                 valueColor: _keyExists ? Colors.green : Colors.red),
             if (_sshDirPath != null) ...[
               const SizedBox(height: 8),
-              FilledButton.tonalIcon(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: _sshDirPath!));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Path copied to clipboard')),
-                  );
-                },
-                icon: const Icon(Icons.copy, size: 16),
-                label: const Text('Copy SSH path'),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Manual SSH setup:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: cs.onSurfaceVariant)),
-                    const SizedBox(height: 4),
-                    Text(
-                      '1. Copy SSH key to device\n'
-                      '2. ssh -i ~/.ssh/id_ed25519 -R 8100:localhost:8100 user@host',
-                      style: TextStyle(fontSize: 10, fontFamily: 'monospace', color: cs.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
+              _buildTunnelControls(cs),
             ],
           ],
         ),
@@ -422,6 +394,68 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTunnelControls(ColorScheme cs) {
+    final tunnel = SshTunnelService.instance;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 10, height: 10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: tunnel.isRunning ? Colors.green : Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(tunnel.isRunning ? 'Tunnel Connected' : 'Tunnel Disconnected',
+                style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface, fontSize: 13)),
+          ],
+        ),
+        if (tunnel.lastError != null) ...[
+          const SizedBox(height: 4),
+          Text(tunnel.lastError!, style: TextStyle(fontSize: 11, color: Colors.red.shade300)),
+        ],
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            if (!tunnel.isRunning)
+              FilledButton.icon(
+                onPressed: () async {
+                  await tunnel.start();
+                  setState(() {});
+                },
+                icon: const Icon(Icons.play_arrow, size: 16),
+                label: const Text('Connect SSH'),
+              )
+            else
+              FilledButton.icon(
+                onPressed: () async {
+                  await tunnel.stop();
+                  setState(() {});
+                },
+                icon: const Icon(Icons.stop, size: 16),
+                label: const Text('Disconnect'),
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: _sshDirPath!));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Path copied to clipboard')),
+                );
+              },
+              icon: const Icon(Icons.copy, size: 16),
+              label: const Text('Copy path'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
