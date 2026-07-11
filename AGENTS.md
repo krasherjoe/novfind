@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-**Phase 1: Flutter Scaffold** — プロジェクト作成、ディレクトリ構造、モデル定義
+**Phase 2: Android Platform Config** — NetworkSecurityConfig/INTERNET/package visibility設定
 
 ## Key Files
 
