@@ -116,7 +116,7 @@ class MattermostDebugBridge {
 
       // Update last poll time from the latest post
       final latest = posts.last;
-      final ts = DateTime.tryParse(latest['create_at'] as String? ?? '');
+      final ts = _parseCreateAt(latest['create_at']);
       if (ts != null) _lastPollTime = ts;
 
       // Filter for !opencode commands from opencode bot
@@ -275,5 +275,15 @@ class MattermostDebugBridge {
     } catch (e) {
       debugPrint('[MMB] Send failed: $e');
     }
+  }
+
+  DateTime? _parseCreateAt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    if (value is String) {
+      final ms = int.tryParse(value);
+      if (ms != null) return DateTime.fromMillisecondsSinceEpoch(ms);
+    }
+    return null;
   }
 }

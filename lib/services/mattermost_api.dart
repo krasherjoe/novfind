@@ -56,7 +56,7 @@ class MattermostApi {
     final posts = resp.data['posts'] as Map<String, dynamic>;
     final timestamps = <String, DateTime>{};
     for (final entry in posts.entries) {
-      final ts = DateTime.tryParse(entry.value['create_at'] as String? ?? '');
+      final ts = _parseCreateAt(entry.value['create_at']);
       if (ts != null) timestamps[entry.key] = ts;
     }
     return timestamps;
@@ -71,13 +71,24 @@ class MattermostApi {
     final result = <Map<String, dynamic>>[];
     for (final id in order) {
       final post = posts[id as String] as Map<String, dynamic>;
-      final createdAt = DateTime.tryParse(post['create_at'] as String? ?? '');
+      final createdAt = _parseCreateAt(post['create_at']);
       if (since != null && createdAt != null && !createdAt.isAfter(since)) {
         continue;
       }
       result.add(post);
     }
     return result;
+  }
+
+  /// Mattermost API returns create_at as millisecond Unix timestamp (int).
+  DateTime? _parseCreateAt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    if (value is String) {
+      final ms = int.tryParse(value);
+      if (ms != null) return DateTime.fromMillisecondsSinceEpoch(ms);
+    }
+    return null;
   }
 
   Future<void> postResult(String postId, String result) async {
