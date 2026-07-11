@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../data/services/google_search_service.dart';
 import '../../data/services/site_label_service.dart';
 import '../../models/search_result.dart';
+import '../../app_service.dart' show restartIce;
 import '../../providers/connection_status.dart';
 import '../../providers/search_provider.dart';
 import '../widgets/status_dot.dart';
@@ -59,10 +60,12 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             StatusDot(
               notifier: ValueNotifier(sshStatus.value == SshStatus.configured),
               tooltip: sshStatus.value == SshStatus.configured ? 'SSH configured' : 'SSH not configured',
+              onTap: restartIce,
             ),
             StatusDot(
               notifier: ValueNotifier(iceStatus.value == IceStatus.online),
               tooltip: iceStatus.value == IceStatus.online ? 'ICE API running' : 'ICE API stopped',
+              onTap: restartIce,
             ),
             Text(widget.keyword),
           ],

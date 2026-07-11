@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/search_query_service.dart';
 import '../../data/services/site_label_service.dart';
 import '../../models/site_config.dart';
+import '../../app_service.dart' show restartIce;
 import '../../providers/connection_status.dart';
 import '../../providers/site_filter_provider.dart';
 import '../widgets/status_dot.dart';
@@ -24,10 +25,12 @@ class SiteFilterScreen extends ConsumerWidget {
             StatusDot(
               notifier: ValueNotifier(sshStatus.value == SshStatus.configured),
               tooltip: sshStatus.value == SshStatus.configured ? 'SSH configured' : 'SSH not configured',
+              onTap: restartIce,
             ),
             StatusDot(
               notifier: ValueNotifier(iceStatus.value == IceStatus.online),
               tooltip: iceStatus.value == IceStatus.online ? 'ICE API running' : 'ICE API stopped',
+              onTap: restartIce,
             ),
             const Text('検索対象サイト'),
           ],

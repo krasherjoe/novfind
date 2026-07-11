@@ -7,6 +7,7 @@ import '../../models/preset.dart';
 import '../../providers/keywords_provider.dart';
 import '../../providers/preset_provider.dart';
 import '../../providers/search_history_provider.dart';
+import '../../app_service.dart' show restartIce;
 import '../../providers/connection_status.dart';
 import '../../providers/theme_provider.dart' show themeNotifier, toggleTheme;
 import '../widgets/status_dot.dart';
@@ -53,10 +54,12 @@ class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
             StatusDot(
               notifier: ValueNotifier(sshStatus.value == SshStatus.configured),
               tooltip: sshStatus.value == SshStatus.configured ? 'SSH configured' : 'SSH not configured',
+              onTap: restartIce,
             ),
             StatusDot(
               notifier: ValueNotifier(iceStatus.value == IceStatus.online),
               tooltip: iceStatus.value == IceStatus.online ? 'ICE API running' : 'ICE API stopped',
+              onTap: restartIce,
             ),
             const Text('novfind'),
           ],

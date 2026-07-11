@@ -174,10 +174,12 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
             StatusDot(
               notifier: ValueNotifier(sshStatus.value == SshStatus.configured),
               tooltip: sshStatus.value == SshStatus.configured ? 'SSH configured' : 'SSH not configured',
+              onTap: () {},
             ),
             StatusDot(
               notifier: ValueNotifier(iceStatus.value == IceStatus.online),
               tooltip: iceStatus.value == IceStatus.online ? 'ICE API running' : 'ICE API stopped',
+              onTap: () {},
             ),
             const Text('ICE Debug'),
           ],
