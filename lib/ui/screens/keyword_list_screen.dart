@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/keyword.dart';
 import '../../providers/keywords_provider.dart';
+import '../../providers/search_history_provider.dart';
 import '../../providers/theme_provider.dart' show themeNotifier, toggleTheme;
 
 class KeywordListScreen extends ConsumerWidget {
@@ -39,28 +40,35 @@ class KeywordListScreen extends ConsumerWidget {
         onPressed: () => _showAddDialog(context, ref),
         child: const Icon(Icons.add),
       ),
-      body: keywordsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (keywords) {
-          if (keywords.isEmpty) {
-            return const Center(
-              child: Text('右下の＋からキーワードを追加'),
-            );
-          }
-          return ReorderableListView.builder(
-            itemCount: keywords.length,
-            onReorderItem: (oldIndex, newIndex) {},
-            itemBuilder: (context, index) {
-              final keyword = keywords[index];
-              return _KeywordTile(
-                key: ValueKey(keyword.id),
-                keyword: keyword,
-                onDelete: () => ref.read(keywordsProvider.notifier).removeKeyword(keyword.id),
-              );
-            },
-          );
-        },
+      body: Column(
+        children: [
+          const _SearchHistorySection(),
+          Expanded(
+            child: keywordsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
+              data: (keywords) {
+                if (keywords.isEmpty) {
+                  return const Center(
+                    child: Text('右下の＋からキーワードを追加'),
+                  );
+                }
+                return ReorderableListView.builder(
+                  itemCount: keywords.length,
+                  onReorderItem: (oldIndex, newIndex) {},
+                  itemBuilder: (context, index) {
+                    final keyword = keywords[index];
+                  return _KeywordTile(
+                    key: ValueKey(keyword.id),
+                    keyword: keyword,
+                    onDelete: () => ref.read(keywordsProvider.notifier).removeKeyword(keyword.id),
+                  );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -99,7 +107,69 @@ class KeywordListScreen extends ConsumerWidget {
   }
 }
 
-class _KeywordTile extends StatelessWidget {
+class _SearchHistorySection extends ConsumerWidget {
+  const _SearchHistorySection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final historyAsync = ref.watch(searchHistoryProvider);
+
+    return historyAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (history) {
+        if (history.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    '最近の検索',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => ref.read(searchHistoryProvider.notifier).clear(),
+                    child: const Text('クリア', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: history.length > 10 ? 10 : history.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final entry = history[index];
+                    return ActionChip(
+                      label: Text(entry.keyword, style: const TextStyle(fontSize: 12)),
+                      onPressed: () {
+                        ref.read(searchHistoryProvider.notifier).addEntry(entry.keyword);
+                        context.go('/search/${Uri.encodeComponent(entry.keyword)}');
+                      },
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    );
+                  },
+                ),
+              ),
+              const Divider(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _KeywordTile extends ConsumerWidget {
   final Keyword keyword;
   final VoidCallback onDelete;
 
@@ -110,7 +180,7 @@ class _KeywordTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       title: Text(keyword.text),
       subtitle: Text(
@@ -122,7 +192,10 @@ class _KeywordTile extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: () => context.go('/search/${Uri.encodeComponent(keyword.text)}'),
+            onPressed: () {
+              ref.read(searchHistoryProvider.notifier).addEntry(keyword.text);
+              context.go('/search/${Uri.encodeComponent(keyword.text)}');
+            },
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
@@ -130,7 +203,10 @@ class _KeywordTile extends StatelessWidget {
           ),
         ],
       ),
-      onTap: () => context.go('/search/${Uri.encodeComponent(keyword.text)}'),
+      onTap: () {
+        ref.read(searchHistoryProvider.notifier).addEntry(keyword.text);
+        context.go('/search/${Uri.encodeComponent(keyword.text)}');
+      },
     );
   }
 
