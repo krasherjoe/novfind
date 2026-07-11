@@ -146,7 +146,7 @@ class SshTunnelService {
 
       final keys = SSHKeyPair.fromPem(keyText);
       if (keys.isEmpty) {
-        _lastError = 'No valid SSH keys in key file';
+        _lastError = 'No parseable SSH key found. If the key is passphrase-protected, remove the passphrase first.';
         SshLogger.e(_lastError!);
         return;
       }
@@ -183,6 +183,17 @@ class SshTunnelService {
 
       SshLogger.i('Target: $userName@$hostName:$port');
       SshLogger.i('ProxyJump: ${proxyJump ?? "(none)"}');
+
+      // Test TCP connectivity first
+      SshLogger.i('Pre-flight: resolving $hostName...');
+      try {
+        final addresses = await InternetAddress.lookup(hostName);
+        SshLogger.i('DNS resolved: ${addresses.map((a) => a.address).join(", ")}');
+      } catch (e) {
+        _lastError = 'DNS resolution failed: $e';
+        SshLogger.e(_lastError!);
+        return;
+      }
 
       // Connect
       _targetClient = await _connectWithProxy(
