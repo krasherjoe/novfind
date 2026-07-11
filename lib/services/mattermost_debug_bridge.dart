@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app_service.dart';
+import '../data/services/smart_search_service.dart';
 import '../models/mattermost_config.dart';
 import '../plugins/ice/ice_api_server.dart';
 import '../plugins/ice/ssh_logger.dart';
@@ -311,7 +312,9 @@ class MattermostDebugBridge {
         '\nPort: ${iceApiServer.port}'
         '\nSSH: ${tunnel.isRunning ? "connected" : "disconnected"}'
         '\nSSH error: ${tunnel.lastError ?? "(none)"}'
-        '\nSearch: SmartSearchService (dio + HeadlessWebView)';
+        '\nSearch: SmartSearchService (dio + HeadlessWebView)'
+        '\nDio err: ${SmartSearchService.lastDioError ?? "(none)"}'
+        '\nHL err: ${SmartSearchService.lastHeadlessError ?? "(none)"}';
   }
 
   String _helpText() {

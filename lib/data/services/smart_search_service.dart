@@ -9,10 +9,17 @@ import 'headless_search_service.dart';
 
 class SmartSearchService {
   final SiteConfig siteConfig;
+  static String? lastError;
+  static String? lastDioError;
+  static String? lastHeadlessError;
 
   SmartSearchService({required this.siteConfig});
 
   Future<List<SearchResult>> search(String keyword) async {
+    lastError = null;
+    lastDioError = null;
+    lastHeadlessError = null;
+
     try {
       final dioService = GoogleSearchService(siteConfig: siteConfig);
       final results = await dioService.search(keyword);
@@ -21,10 +28,14 @@ class SmartSearchService {
         return results;
       }
     } catch (e) {
+      lastDioError = '$e';
       debugPrint('[SmartSearch] dio failed: $e');
     }
 
-    if (!Platform.isAndroid) return [];
+    if (!Platform.isAndroid) {
+      lastError = 'Not on Android, skipping headless';
+      return [];
+    }
 
     try {
       debugPrint('[SmartSearch] Falling back to headless WebView...');
@@ -36,10 +47,13 @@ class SmartSearchService {
         debugPrint('[SmartSearch] headless returned ${headlessResults.length} results');
         return headlessResults;
       }
+      lastHeadlessError = 'Headless returned 0 results';
     } catch (e) {
+      lastHeadlessError = '$e';
       debugPrint('[SmartSearch] headless failed: $e');
     }
 
+    lastError = 'Both dio and headless failed';
     return [];
   }
 
