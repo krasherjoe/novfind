@@ -93,9 +93,22 @@ class SearchResultsScreen extends ConsumerWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  subtitle: Text(
-                    result.sourceDomain,
-                    style: Theme.of(context).textTheme.bodySmall,
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        result.url,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      Text(
+                        result.sourceDomain,
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                    ],
                   ),
                   trailing: const Icon(Icons.share, size: 20),
                   onTap: () => _shareResult(context, result),

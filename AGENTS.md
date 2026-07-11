@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-**Phase 7: Results Display** — 検索結果のタイトル+URL一覧表示、pull-to-refresh
+**Phase 8: Source Site Labels** — 各結果に取得元サイト名ラベル表示
 
 ## Key Files
 
