@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app_service.dart';
+import '../data/services/google_cse_service.dart';
 import '../data/services/smart_search_service.dart';
 import '../models/mattermost_config.dart';
 import '../plugins/ice/ice_api_server.dart';
@@ -230,6 +231,14 @@ class MattermostDebugBridge {
           final port = args.isNotEmpty ? int.tryParse(args[0]) ?? 8100 : iceApiServer.port;
           await iceApiServer.restart(port: port);
           result = 'ICE restarted on port $port';
+        case 'cse.key':
+          if (args.isEmpty) { result = 'Usage: cse.key <API_KEY>'; break; }
+          await GoogleCseService().setApiKey(args[0]);
+          result = 'CSE API key saved';
+        case 'cse.cx':
+          if (args.isEmpty) { result = 'Usage: cse.cx <ENGINE_ID>'; break; }
+          await GoogleCseService().setCx(args[0]);
+          result = 'CSE engine ID saved';
         case 'search':
           final keyword = args.join(' ');
           if (keyword.isEmpty) {
@@ -322,7 +331,9 @@ class MattermostDebugBridge {
         '\nPort: ${iceApiServer.port}'
         '\nSSH: ${tunnel.isRunning ? "connected" : "disconnected"}'
         '\nSSH error: ${tunnel.lastError ?? "(none)"}'
-        '\nSearch: SmartSearchService (dio + HeadlessWebView)'
+        '\nSearch: SmartSearchService (CSE → dio → Headless)'
+        '\nCSE key: ${GoogleCseService().isConfigured ? "✓ set" : "✗ not set"}'
+        '\nCSE err: ${SmartSearchService.lastCseError ?? "(none)"}'
         '\nDio err: ${SmartSearchService.lastDioError ?? "(none)"}'
         '\nHL err: ${SmartSearchService.lastHeadlessError ?? "(none)"}';
   }
@@ -330,6 +341,7 @@ class MattermostDebugBridge {
   String _helpText() {
     return 'Commands (all work without SSH):\n'
         'search <keyword> | help\n'
+        'cse.key <API_KEY> | cse.cx <ENGINE_ID>\n'
         'ssh.status | connect | disconnect | log [n] | config\n'
         'ice.status | debug | start [port] | stop | restart [port]\n'
         'app.info | keywords | history';

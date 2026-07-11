@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../models/search_result.dart';
 import '../../models/site_config.dart';
+import 'google_cse_service.dart';
 import 'google_search_service.dart';
 import 'headless_search_service.dart';
 
@@ -12,6 +13,8 @@ class SmartSearchService {
   static String? lastError;
   static String? lastDioError;
   static String? lastHeadlessError;
+  static String? lastCseError;
+  static final GoogleCseService _cse = GoogleCseService();
 
   SmartSearchService({required this.siteConfig});
 
@@ -19,6 +22,24 @@ class SmartSearchService {
     lastError = null;
     lastDioError = null;
     lastHeadlessError = null;
+    lastCseError = null;
+
+    // Phase 0: Google Custom Search API (best results, requires API key)
+    await _cse.loadConfig();
+    if (_cse.isConfigured) {
+      try {
+        debugPrint('[SmartSearch] Trying Google CSE...');
+        final results = await _cse.search(keyword, _buildSiteQuery());
+        if (results.isNotEmpty) {
+          debugPrint('[SmartSearch] CSE returned ${results.length} results');
+          return results;
+        }
+        lastCseError = 'CSE returned 0 results';
+      } catch (e) {
+        lastCseError = '$e';
+        debugPrint('[SmartSearch] CSE failed: $e');
+      }
+    }
 
     try {
       final dioService = GoogleSearchService(siteConfig: siteConfig);
