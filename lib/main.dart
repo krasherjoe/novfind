@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'plugins/ice/ice_api_server.dart';
 import 'providers/theme_provider.dart';
+import 'ui/screens/ice_settings_screen.dart';
 import 'ui/screens/keyword_list_screen.dart';
 import 'ui/screens/search_results_screen.dart';
 import 'ui/screens/site_filter_screen.dart';
 
-void main() async {
+final iceApiServer = IceApiServer();
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await loadTheme();
   runApp(const ProviderScope(child: NovfindApp()));
@@ -21,6 +25,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/',
         name: 'keywords',
         builder: (context, state) => const KeywordListScreen(),
+      ),
+      GoRoute(
+        path: '/ice',
+        name: 'ice',
+        builder: (context, state) => IceSettingsScreen(apiServer: iceApiServer),
       ),
       GoRoute(
         path: '/sites',

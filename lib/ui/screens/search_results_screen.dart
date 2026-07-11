@@ -5,7 +5,9 @@ import 'package:share_plus/share_plus.dart';
 import '../../data/services/google_search_service.dart';
 import '../../data/services/site_label_service.dart';
 import '../../models/search_result.dart';
+import '../../providers/connection_status.dart';
 import '../../providers/search_provider.dart';
+import '../widgets/status_dot.dart';
 
 enum SortOrder { default_, title, domain }
 
@@ -51,7 +53,20 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.keyword),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StatusDot(
+              notifier: ValueNotifier(sshStatus.value == SshStatus.configured),
+              tooltip: sshStatus.value == SshStatus.configured ? 'SSH configured' : 'SSH not configured',
+            ),
+            StatusDot(
+              notifier: ValueNotifier(iceStatus.value == IceStatus.online),
+              tooltip: iceStatus.value == IceStatus.online ? 'ICE API running' : 'ICE API stopped',
+            ),
+            Text(widget.keyword),
+          ],
+        ),
         centerTitle: true,
         actions: [
           PopupMenuButton<SortOrder>(

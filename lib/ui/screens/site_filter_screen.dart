@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/search_query_service.dart';
 import '../../data/services/site_label_service.dart';
 import '../../models/site_config.dart';
+import '../../providers/connection_status.dart';
 import '../../providers/site_filter_provider.dart';
+import '../widgets/status_dot.dart';
 
 class SiteFilterScreen extends ConsumerWidget {
   const SiteFilterScreen({super.key});
@@ -16,7 +18,20 @@ class SiteFilterScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('検索対象サイト'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StatusDot(
+              notifier: ValueNotifier(sshStatus.value == SshStatus.configured),
+              tooltip: sshStatus.value == SshStatus.configured ? 'SSH configured' : 'SSH not configured',
+            ),
+            StatusDot(
+              notifier: ValueNotifier(iceStatus.value == IceStatus.online),
+              tooltip: iceStatus.value == IceStatus.online ? 'ICE API running' : 'ICE API stopped',
+            ),
+            const Text('検索対象サイト'),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => ref.read(siteFilterProvider.notifier).setAllEnabled(),

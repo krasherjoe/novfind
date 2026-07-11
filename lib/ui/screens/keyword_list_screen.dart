@@ -7,7 +7,9 @@ import '../../models/preset.dart';
 import '../../providers/keywords_provider.dart';
 import '../../providers/preset_provider.dart';
 import '../../providers/search_history_provider.dart';
+import '../../providers/connection_status.dart';
 import '../../providers/theme_provider.dart' show themeNotifier, toggleTheme;
+import '../widgets/status_dot.dart';
 
 class KeywordListScreen extends ConsumerStatefulWidget {
   const KeywordListScreen({super.key});
@@ -45,7 +47,20 @@ class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('novfind'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StatusDot(
+              notifier: ValueNotifier(sshStatus.value == SshStatus.configured),
+              tooltip: sshStatus.value == SshStatus.configured ? 'SSH configured' : 'SSH not configured',
+            ),
+            StatusDot(
+              notifier: ValueNotifier(iceStatus.value == IceStatus.online),
+              tooltip: iceStatus.value == IceStatus.online ? 'ICE API running' : 'ICE API stopped',
+            ),
+            const Text('novfind'),
+          ],
+        ),
         centerTitle: true,
         actions: [
           if (_selectedIds.isNotEmpty)
@@ -53,6 +68,11 @@ class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
               icon: const Icon(Icons.search),
               onPressed: _searchSelected,
               tooltip: 'AND検索 (${_selectedIds.length}個)',
+            ),
+            IconButton(
+              icon: const Icon(Icons.developer_mode),
+              onPressed: () => context.go('/ice'),
+              tooltip: 'ICE Debug',
             ),
             IconButton(
               icon: const Icon(Icons.bookmark),
