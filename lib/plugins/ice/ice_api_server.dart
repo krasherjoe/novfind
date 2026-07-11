@@ -6,6 +6,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/services/smart_search_service.dart';
+import '../../models/site_config.dart';
 import '../../providers/connection_status.dart';
 import '../../providers/keywords_provider.dart';
 import '../../providers/preset_provider.dart';
@@ -112,6 +114,9 @@ class IceApiServer {
             'version': _appVersion,
             'uptime': _formatUptime(),
           });
+
+        case '/version':
+          await _json(request.response, {'version': _appVersion});
 
         case '/debug':
           await _json(request.response, _collectDebugInfo());
@@ -222,6 +227,7 @@ class IceApiServer {
 
   Future<Map<String, dynamic>> _collectFullState() async {
     final base = await _collector.collect();
+    base['version'] = _appVersion;
 
     // Add novfind-specific state
     try {
@@ -284,6 +290,11 @@ class IceApiServer {
         'POST /fs/write - Write file',
         'GET /fs/list?path=... - List directory',
       ],
+      'search': {
+        'engine': 'SmartSearchService (dio + HeadlessWebView)',
+        'lastDioError': SmartSearchService.lastDioError ?? '(none)',
+        'lastHeadlessError': SmartSearchService.lastHeadlessError ?? '(none)',
+      },
     };
   }
 
@@ -360,7 +371,16 @@ class IceApiServer {
     final query = await _loadSearchQuery();
     final service = SearchService(query: query);
     final results = await service.search(keyword);
-    return '${results.length} results';
+    if (results.isEmpty) return 'No results for "$keyword"';
+    final sb = StringBuffer('Results for "$keyword" (${results.length}):\n');
+    for (var i = 0; i < results.length && i < 10; i++) {
+      final r = results[i];
+      sb.writeln('${i + 1}. ${r.title}\n   ${r.url}');
+    }
+    if (results.length > 10) {
+      sb.writeln('...and ${results.length - 10} more');
+    }
+    return sb.toString();
   }
 
   Future<String> _cmdAddKeyword(List<String> args) async {
@@ -382,7 +402,22 @@ class IceApiServer {
   }
 
   Future<String> _cmdDeleteKeyword(List<String> args) async {
-    return 'error: id required';
+    if (args.isEmpty) return 'error: id required';
+    final id = args[0];
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getStringList('keywords') ?? [];
+    final remaining = existing.where((entry) {
+      try {
+        final json = jsonDecode(entry) as Map<String, dynamic>;
+        final eid = json['id'];
+        return eid != null && eid.toString() != id;;
+      } catch (_) {
+        return true;
+      }
+    }).toList();
+    final removed = existing.length - remaining.length;
+    await prefs.setStringList('keywords', remaining);
+    return removed > 0 ? 'keyword deleted: $id' : 'keyword not found: $id';
   }
 
   Future<String> _cmdListKeywords() async {
@@ -410,11 +445,38 @@ class IceApiServer {
   }
 
   Future<String> _cmdSiteList() async {
-    return 'site list (not available without ref)';
+    final query = await _loadSearchQuery();
+    if (query.isEmpty) return 'No search query configured';
+    final config = SiteConfig.fromEnv(query);
+    final prefs = await SharedPreferences.getInstance();
+    final disabledJson = prefs.getString('disabledSites');
+    final disabled = disabledJson != null
+        ? (jsonDecode(disabledJson) as List).cast<String>().toSet()
+        : <String>{};
+    final sb = StringBuffer('Sites (${config.siteCount} total, ${disabled.length} disabled):\n');
+    for (final site in config.sites) {
+      final status = disabled.contains(site) ? '✗' : '✓';
+      sb.writeln('  $status $site');
+    }
+    return sb.toString();
   }
 
   Future<String> _cmdSiteToggle(List<String> args) async {
-    return 'site toggle (not available without ref)';
+    if (args.isEmpty) return 'error: domain required';
+    final domain = args[0];
+    final prefs = await SharedPreferences.getInstance();
+    final disabledJson = prefs.getString('disabledSites');
+    final disabled = disabledJson != null
+        ? (jsonDecode(disabledJson) as List).cast<String>().toSet()
+        : <String>{};
+    if (disabled.contains(domain)) {
+      disabled.remove(domain);
+    } else {
+      disabled.add(domain);
+    }
+    await prefs.setString('disabledSites', jsonEncode(disabled.toList()));
+    final status = disabled.contains(domain) ? 'disabled' : 'enabled';
+    return '$domain $status';
   }
 
   Future<String> _cmdAppInfo() async {
