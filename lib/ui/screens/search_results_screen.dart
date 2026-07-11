@@ -7,19 +7,74 @@ import '../../data/services/site_label_service.dart';
 import '../../models/search_result.dart';
 import '../../providers/search_provider.dart';
 
-class SearchResultsScreen extends ConsumerWidget {
+enum SortOrder { default_, title, domain }
+
+extension SortOrderLabel on SortOrder {
+  String get label {
+    switch (this) {
+      case SortOrder.default_:
+        return 'デフォルト';
+      case SortOrder.title:
+        return 'タイトル順';
+      case SortOrder.domain:
+        return 'サイト順';
+    }
+  }
+}
+
+class SearchResultsScreen extends ConsumerStatefulWidget {
   final String keyword;
 
   const SearchResultsScreen({required this.keyword, super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final resultsAsync = ref.watch(searchResultsProvider(keyword));
+  ConsumerState<SearchResultsScreen> createState() => _SearchResultsScreenState();
+}
+
+class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
+  SortOrder _sortOrder = SortOrder.default_;
+
+  List<SearchResult> _sort(List<SearchResult> results) {
+    switch (_sortOrder) {
+      case SortOrder.default_:
+        return results;
+      case SortOrder.title:
+        return List.from(results)..sort((a, b) => a.title.compareTo(b.title));
+      case SortOrder.domain:
+        return List.from(results)..sort((a, b) => a.sourceDomain.compareTo(b.sourceDomain));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final resultsAsync = ref.watch(searchResultsProvider(widget.keyword));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(keyword),
+        title: Text(widget.keyword),
         centerTitle: true,
+        actions: [
+          PopupMenuButton<SortOrder>(
+            icon: const Icon(Icons.sort),
+            tooltip: '並び替え',
+            onSelected: (order) => setState(() => _sortOrder = order),
+            itemBuilder: (_) => SortOrder.values.map((order) {
+              return PopupMenuItem(
+                value: order,
+                child: Row(
+                  children: [
+                    if (_sortOrder == order)
+                      const Icon(Icons.check, size: 18)
+                    else
+                      const SizedBox(width: 18),
+                    const SizedBox(width: 8),
+                    Text(order.label),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
       body: resultsAsync.when(
         loading: () => const Center(
@@ -46,13 +101,14 @@ class SearchResultsScreen extends ConsumerWidget {
               ),
             );
           }
+          final sorted = _sort(results);
           return RefreshIndicator(
-            onRefresh: () => ref.refresh(searchResultsProvider(keyword).future),
+            onRefresh: () => ref.refresh(searchResultsProvider(widget.keyword).future),
             child: ListView.separated(
-              itemCount: results.length,
+              itemCount: sorted.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
-                final result = results[index];
+                final result = sorted[index];
                 return ListTile(
                   title: Text(
                     result.title,
@@ -132,7 +188,7 @@ class SearchResultsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           FilledButton.icon(
-            onPressed: () => ref.invalidate(searchResultsProvider(keyword)),
+            onPressed: () => ref.invalidate(searchResultsProvider(widget.keyword)),
             icon: const Icon(Icons.refresh),
             label: const Text('再試行'),
           ),
