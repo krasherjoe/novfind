@@ -19,6 +19,11 @@ class KeywordListScreen extends ConsumerWidget {
         title: const Text('novfind'),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: () => context.go('/sites'),
+            tooltip: 'サイトフィルター',
+          ),
           ValueListenableBuilder<ThemeMode>(
             valueListenable: themeNotifier,
             builder: (context, mode, _) {

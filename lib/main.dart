@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'providers/theme_provider.dart';
 import 'ui/screens/keyword_list_screen.dart';
 import 'ui/screens/search_results_screen.dart';
+import 'ui/screens/site_filter_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/',
         name: 'keywords',
         builder: (context, state) => const KeywordListScreen(),
+      ),
+      GoRoute(
+        path: '/sites',
+        name: 'sites',
+        builder: (context, state) => const SiteFilterScreen(),
       ),
       GoRoute(
         path: '/search/:keyword',
