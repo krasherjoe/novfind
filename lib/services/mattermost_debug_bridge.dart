@@ -34,6 +34,8 @@ class MattermostDebugBridge {
   bool _running = false;
   DateTime? _lastPollTime;
   final DateTime _bridgeStartTime = DateTime.now();
+  final Set<String> _processedPostIds = {};
+  static const int _maxProcessedIds = 100;
   final List<String> _pendingLogs = [];
   String? _lastError;
 
@@ -133,10 +135,14 @@ class MattermostDebugBridge {
       final ts = _parseCreateAt(latest['create_at']);
       if (ts != null) _lastPollTime = ts;
 
-      // Filter for !opencode commands (ignore messages from ourselves)
+      // Filter for !opencode commands
       for (final post in posts) {
         final message = post['message'] as String? ?? '';
+        final postId = post['id'] as String? ?? '';
         final createdAt = _parseCreateAt(post['create_at']);
+
+        // Skip already-processed posts
+        if (postId.isNotEmpty && !_processedPostIds.add(postId)) continue;
 
         // Skip posts created before the bridge started
         if (createdAt != null && createdAt.isBefore(_bridgeStartTime)) continue;
@@ -144,6 +150,14 @@ class MattermostDebugBridge {
         // Only process !opencode prefixed messages
         if (message.startsWith('!opencode ')) {
           await _handleCommand(post);
+        }
+      }
+
+      // Trim processed IDs to prevent memory leak
+      if (_processedPostIds.length > _maxProcessedIds) {
+        final excess = _processedPostIds.length - _maxProcessedIds;
+        for (var i = 0; i < excess; i++) {
+          _processedPostIds.remove(_processedPostIds.first);
         }
       }
     } catch (e) {
