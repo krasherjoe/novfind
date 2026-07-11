@@ -45,12 +45,19 @@ class GoogleSearchService {
   })  : _siteConfig = siteConfig,
         _dio = dio ??
             Dio(BaseOptions(
-              connectTimeout: const Duration(seconds: 15),
-              receiveTimeout: const Duration(seconds: 15),
+              connectTimeout: const Duration(seconds: 20),
+              receiveTimeout: const Duration(seconds: 20),
               headers: {
                 'User-Agent':
-                    'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
+                    'Mozilla/5.0 (Linux; Android 14; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.84 Mobile Safari/537.36',
+                'Accept':
+                    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                 'Accept-Language': 'ja-JP,ja;q=0.9,en;q=0.8',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1',
+                'Cache-Control': 'no-cache',
               },
             ));
 
@@ -123,46 +130,124 @@ class GoogleSearchService {
 
     final document = parser.parse(html);
     final results = <SearchResult>[];
-    final anchors = document.querySelectorAll('a[href^="/url?q="]');
-    final h3s = document.querySelectorAll('h3');
 
+    // Strategy 1: a[href^="/url?q="] > h3 (classic Google SERP)
+    var anchors = document.querySelectorAll('a[href^="/url?q="]');
     for (final anchor in anchors) {
-      final href = anchor.attributes['href'];
-      if (href == null) continue;
-
-      final parsed = Uri.tryParse(href);
-      if (parsed == null) continue;
-
-      final targetUrl = parsed.queryParameters['q'];
-      if (targetUrl == null) continue;
-      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) continue;
-
-      final h3 = anchor.querySelector('h3');
-      if (h3 == null) continue;
-
-      final title = h3.text.trim();
-      if (title.isEmpty) continue;
-
-      final sourceDomain = Uri.tryParse(targetUrl)?.host ?? '';
-      if (sourceDomain.isEmpty) continue;
-
-      results.add(SearchResult(
-        title: title,
-        url: targetUrl,
-        sourceDomain: sourceDomain,
-      ));
+      _tryExtract(anchor, results);
     }
+
+    // Strategy 2: h3 inside a with http href
+    if (results.isEmpty) {
+      final h3s = document.querySelectorAll('h3');
+      for (final h3 in h3s) {
+        final parent = h3.parent;
+        if (parent == null) continue;
+        if (parent.localName == 'a') {
+          _tryExtractAnchor(parent, h3, results);
+        }
+      }
+    }
+
+    // Strategy 3: div.g > div > a h3 (standard result container)
+    if (results.isEmpty) {
+      final divs = document.querySelectorAll('div.g');
+      for (final div in divs) {
+        final firstA = div.querySelector('a[href^="http"]');
+        final firstH3 = div.querySelector('h3');
+        if (firstA != null && firstH3 != null) {
+          _addResult(firstA, firstH3, results);
+        }
+      }
+    }
+
+    // Strategy 4: Any a + h3 pair
+    if (results.isEmpty) {
+      final allH3s = document.querySelectorAll('h3');
+      for (final h3 in allH3s) {
+        // Walk up to find enclosing anchor
+        var el = h3.parent;
+        while (el != null) {
+          if (el.localName == 'a') {
+            final href = el.attributes['href'] ?? '';
+            if (href.startsWith('http://') || href.startsWith('https://')) {
+              _addResult(el, h3, results);
+            }
+            break;
+          }
+          el = el.parent;
+        }
+      }
+    }
+
+    // Debug info
+    final totalH3s = document.querySelectorAll('h3').length;
+    final totalAnchors = document.querySelectorAll('a').length;
+    final urlAnchors = document.querySelectorAll('a[href^="/url?q="]').length;
 
     if (results.isEmpty) {
       throw SearchException(
         SearchErrorType.empty,
-        'h3=${h3s.length} anchors=${anchors.length}',
+        'h3=$totalH3s anchors(url)=$urlAnchors totalA=$totalAnchors',
         searchUrl: searchUrl,
         htmlSnippet: snippet,
       );
     }
 
     return results;
+  }
+
+  void _tryExtract(anchor, List<SearchResult> results) {
+    final href = anchor.attributes['href'];
+    if (href == null) return;
+
+    final parsed = Uri.tryParse(href);
+    if (parsed == null) return;
+
+    final targetUrl = parsed.queryParameters['q'];
+    if (targetUrl == null) return;
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) return;
+
+    final h3 = anchor.querySelector('h3');
+    if (h3 == null) return;
+
+    _addResultString(targetUrl, h3.text.trim(), results);
+  }
+
+  void _tryExtractAnchor(anchor, h3, List<SearchResult> results) {
+    final href = anchor.attributes['href'] ?? '';
+    _addResultString(href, h3.text.trim(), results);
+  }
+
+  void _addResult(anchor, h3, List<SearchResult> results) {
+    final href = anchor.attributes['href'] ?? '';
+    _addResultString(href, h3.text.trim(), results);
+  }
+
+  void _addResultString(String url, String title, List<SearchResult> results) {
+    final t = title.trim();
+    if (t.isEmpty) return;
+
+    // Handle Google redirect URLs
+    String targetUrl = url;
+    if (url.startsWith('/url?q=')) {
+      final parsed = Uri.tryParse(url);
+      if (parsed != null) {
+        final q = parsed.queryParameters['q'];
+        if (q != null) targetUrl = q;
+      }
+    }
+
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) return;
+
+    final sourceDomain = Uri.tryParse(targetUrl)?.host ?? '';
+    if (sourceDomain.isEmpty) return;
+
+    results.add(SearchResult(
+      title: t,
+      url: targetUrl,
+      sourceDomain: sourceDomain,
+    ));
   }
 }
 
