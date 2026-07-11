@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app_service.dart';
@@ -10,6 +11,7 @@ import '../plugins/ice/ice_api_server.dart';
 import '../plugins/ice/ssh_logger.dart';
 import '../providers/connection_status.dart'
     show IceStatus, SshStatus, getSshDir, iceStatus, sshStatus;
+import '../services/search_service.dart';
 import '../services/ssh_tunnel_service.dart';
 import 'mattermost_api.dart';
 
@@ -199,6 +201,31 @@ class MattermostDebugBridge {
           final port = args.isNotEmpty ? int.tryParse(args[0]) ?? 8100 : iceApiServer.port;
           await iceApiServer.restart(port: port);
           result = 'ICE restarted on port $port';
+        case 'search':
+          final keyword = args.join(' ');
+          if (keyword.isEmpty) {
+            result = 'Usage: search <keyword>';
+          } else {
+            try {
+              final query = await rootBundle.loadString('assets/search_query.txt');
+              final svc = SearchService(query: query);
+              final results = await svc.search(keyword);
+              if (results.isEmpty) {
+                result = 'No results for "$keyword"';
+              } else {
+                result = 'Results for "$keyword" (${results.length}):\n';
+                for (var i = 0; i < results.length && i < 10; i++) {
+                  final r = results[i];
+                  result += '${i + 1}. ${r.title}\n   ${r.url}\n';
+                }
+                if (results.length > 10) {
+                  result += '...and ${results.length - 10} more';
+                }
+              }
+            } catch (e) {
+              result = 'Search failed: $e';
+            }
+          }
         case 'app.info':
           final prefs = await SharedPreferences.getInstance();
           final kw = prefs.getStringList('keywords') ?? [];
@@ -262,6 +289,7 @@ class MattermostDebugBridge {
 
   String _helpText() {
     return 'Commands:\n'
+        'search <keyword> | help\n'
         'ssh.status | connect | disconnect | log [n] | config\n'
         'ice.status | debug | start [port] | stop | restart [port]\n'
         'app.info | keywords | history';
