@@ -10,8 +10,8 @@ import '../providers/connection_status.dart' show SshStatus, sshStatus;
 class SshTunnelService {
   static final SshTunnelService instance = SshTunnelService._();
 
-  SSHClient? _client;
-  SSHSocket? _socket;
+  SSHClient? _targetClient;
+  SSHClient? _jumpClient;
   SSHRemoteForward? _forward;
   bool _running = false;
   String? _lastError;
@@ -27,34 +27,151 @@ class SshTunnelService {
     return '${dir.path}/.ssh';
   }
 
-  Future<String> getSshCommand() async {
-    final sshDir = await getSshDir();
-    return 'dartssh2 auto-tunnel: 8100 ← → localhost:8100\nfiles: $sshDir';
-  }
+  /// Parse SSH config into a map of Host sections.
+  /// Returns list of {host, hostname, user, port, proxyjump, ...}
+  List<Map<String, String>> _parseSshConfig(String config) {
+    final sections = <Map<String, String>>[];
+    Map<String, String>? current;
 
-  Map<String, String> _parseSshConfig(String config) {
-    final result = <String, String>{};
-    final lines = config.split('\n');
-    int currentHostIndex = -1;
+    for (final rawLine in config.split('\n')) {
+      final line = rawLine.trim();
+      if (line.isEmpty || line.startsWith('#')) continue;
 
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
+      // Check for Host directive (new section)
+      final parts = line.split(RegExp(r'\s+'));
+      if (parts.length >= 2 && parts[0].toLowerCase() == 'host') {
+        current = <String, String>{'host': parts.sublist(1).join(' ')};
+        sections.add(current);
+        continue;
+      }
 
-      final parts = trimmed.split(RegExp(r'\s+'));
-      if (parts.length < 2) continue;
-
+      if (current == null) continue;
       final key = parts[0].toLowerCase();
       final value = parts.sublist(1).join(' ');
-
-      if (key == 'host') {
-        currentHostIndex++;
-        result['host'] = value;
-      } else if (currentHostIndex >= 0) {
-        result[key] = value;
-      }
+      current[key] = value;
     }
-    return result;
+    return sections;
+  }
+
+  /// Find matching Host section for a given alias.
+  Map<String, String>? _findHostConfig(List<Map<String, String>> sections, String alias) {
+    for (final section in sections) {
+      final hostPattern = section['host'] ?? '';
+      // Exact match
+      if (hostPattern == alias) return section;
+      // Wildcard match (*)
+      if (hostPattern == '*') continue; // Save as fallback
+    }
+    // Fallback to wildcard section
+    for (final section in sections) {
+      if (section['host'] == '*') return section;
+    }
+    return null;
+  }
+
+  /// Parse ProxyJump value like "user@host:port" into (host, port, user)
+  (String host, int port, String user) _parseJumpTarget(String value) {
+    var target = value.trim();
+    String user = 'root';
+    String host;
+    int port = 22;
+
+    // user@host
+    final atIdx = target.lastIndexOf('@');
+    if (atIdx >= 0) {
+      user = target.substring(0, atIdx);
+      target = target.substring(atIdx + 1);
+    }
+
+    // host:port
+    final colonIdx = target.lastIndexOf(':');
+    if (colonIdx >= 0 && colonIdx == target.length - 5 && int.tryParse(target.substring(colonIdx + 1)) != null) {
+      port = int.parse(target.substring(colonIdx + 1));
+      host = target.substring(0, colonIdx);
+    } else {
+      host = target;
+    }
+
+    return (host, port, user);
+  }
+
+  /// Connect to a host via SSH and optionally through a jump host (ProxyJump).
+  Future<SSHClient?> _connectWithProxy({
+    required String host,
+    required int port,
+    required String user,
+    required String? proxyJump,
+    required List<SSHKeyPair> keys,
+    required String label,
+  }) async {
+    _lastError = '$label: resolving proxyjump=$proxyJump';
+    debugPrint('[SSH] $_lastError');
+
+    if (proxyJump != null && proxyJump.isNotEmpty) {
+      // ProxyJump chain: connect to jump host first
+      final (jumpHost, jumpPort, jumpUser) = _parseJumpTarget(proxyJump);
+
+      _lastError = '$label: connecting to jump host $jumpUser@$jumpHost:$jumpPort';
+      debugPrint('[SSH] $_lastError');
+
+      final jumpSocket = await SSHSocket.connect(jumpHost, jumpPort,
+          timeout: const Duration(seconds: 15));
+
+      _jumpClient = SSHClient(
+        jumpSocket,
+        username: jumpUser,
+        identities: keys,
+        keepAliveInterval: const Duration(seconds: 20),
+        onPasswordRequest: () { _lastError = 'Jump host key auth failed'; return null; },
+        onVerifyHostKey: (_, __) => true,
+      );
+      await _jumpClient!.authenticated;
+
+      _lastError = '$label: opening direct-tcpip channel to $host:$port through jump';
+      debugPrint('[SSH] $_lastError');
+
+      // Open direct-tcpip channel through jump host to target
+      final forwardChannel = await _jumpClient!.forwardLocal(host, port);
+
+      // Use the forward channel as SSH transport for target connection (SSH-in-SSH)
+      _lastError = '$label: connecting via jump (SSH-in-SSH)';
+      debugPrint('[SSH] $_lastError');
+
+      final targetClient = SSHClient(
+        forwardChannel,
+        username: user,
+        identities: keys,
+        keepAliveInterval: const Duration(seconds: 20),
+        onPasswordRequest: () { _lastError = 'Target host key auth failed'; return null; },
+        onVerifyHostKey: (_, __) => true,
+      );
+      await targetClient.authenticated;
+
+      _lastError = '$label: connected via jump host';
+      debugPrint('[SSH] $_lastError');
+      return targetClient;
+    } else {
+      // Direct connection (no proxy jump)
+      _lastError = '$label: direct connect to $user@$host:$port';
+      debugPrint('[SSH] $_lastError');
+
+      final socket = await SSHSocket.connect(host, port,
+          timeout: const Duration(seconds: 15));
+
+      final client = SSHClient(
+        socket,
+        username: user,
+        identities: keys,
+        keepAliveInterval: const Duration(seconds: 20),
+        onPasswordRequest: () { _lastError = 'Key auth failed'; return null; },
+        onVerifyHostKey: (_, __) => true,
+      );
+      await client.authenticated;
+
+      _lastError = '$label: connected';
+      debugPrint('[SSH] $_lastError');
+      return client;
+    }
   }
 
   Future<void> start() async {
@@ -67,7 +184,7 @@ class SshTunnelService {
       final keyFile = File('$sshDir/id_ed25519');
 
       if (!await configFile.exists()) {
-        _lastError = 'SSH config file not found at $sshDir/config';
+        _lastError = 'SSH config not found at $sshDir/config';
         debugPrint('[SSH] $_lastError');
         return;
       }
@@ -79,88 +196,81 @@ class SshTunnelService {
 
       final configText = await configFile.readAsString();
       final keyText = await keyFile.readAsString();
-      final config = _parseSshConfig(configText);
 
-      final hostName = config['hostname'] ?? config['host'] ?? 'opencode-box';
-      final port = int.tryParse(config['port'] ?? '22') ?? 22;
-      final username = config['user'] ?? 'root';
-
-      _lastError = 'Connecting to $username@$hostName:$port ...';
-      debugPrint('[SSH] $_lastError');
-
-      // Parse SSH key
       final keys = SSHKeyPair.fromPem(keyText);
       if (keys.isEmpty) {
-        _lastError = 'No SSH keys found in key file';
+        _lastError = 'No valid SSH keys found';
         debugPrint('[SSH] $_lastError');
         return;
       }
 
-      // Connect socket
-      _socket = await SSHSocket.connect(
-        hostName,
-        port,
-        timeout: const Duration(seconds: 15),
+      // Parse SSH config and find matching section for "opencode-box"
+      final sections = _parseSshConfig(configText);
+      final hostConfig = _findHostConfig(sections, 'opencode-box');
+
+      if (hostConfig == null) {
+        _lastError = 'No SSH config found for "opencode-box"';
+        debugPrint('[SSH] $_lastError');
+        return;
+      }
+
+      final hostName = hostConfig['hostname'] ?? hostConfig['host'] ?? 'opencode-box';
+      final port = int.tryParse(hostConfig['port'] ?? '22') ?? 22;
+      final userName = hostConfig['user'] ?? 'root';
+      final proxyJump = hostConfig['proxyjump'];
+
+      _lastError = 'Target: $userName@$hostName:$port, ProxyJump: ${proxyJump ?? "(none)"}';
+      debugPrint('[SSH] $_lastError');
+
+      // Connect to target (possibly through jump host)
+      _targetClient = await _connectWithProxy(
+        host: hostName,
+        port: port,
+        user: userName,
+        proxyJump: proxyJump,
+        keys: keys,
+        label: 'target',
       );
 
-      _lastError = 'Authenticating...';
-      debugPrint('[SSH] Authenticating with key (${keys.length} keys)');
+      if (_targetClient == null) {
+        _lastError = 'Failed to connect to target host';
+        debugPrint('[SSH] $_lastError');
+        return;
+      }
 
-      _client = SSHClient(
-        _socket!,
-        username: username,
-        identities: keys,
-        keepAliveInterval: const Duration(seconds: 20),
-        onPasswordRequest: () {
-          _lastError = 'Password requested - key auth failed';
-          debugPrint('[SSH] $_lastError');
-          return null;
-        },
-        onVerifyHostKey: (_, __) => true,
-      );
-
-      // Wait for auth to complete
-      await _client!.authenticated;
-
+      // Request reverse port forwarding on the TARGET host
       _lastError = 'Requesting reverse forward :8100';
       debugPrint('[SSH] $_lastError');
 
-      // Request remote port forwarding (empty host = all interfaces)
-      _forward = await _client!.forwardRemote(
-        host: '',
-        port: 8100,
-      );
+      _forward = await _targetClient!.forwardRemote(host: '', port: 8100);
 
       if (_forward == null) {
-        _lastError = 'Remote port forward failed - server may not allow GatewayPorts';
+        _lastError = 'Port forward :8100 denied, trying 127.0.0.1:8100';
         debugPrint('[SSH] $_lastError');
-        // Try loopback only
-        _forward = await _client!.forwardRemote(
-          host: '127.0.0.1',
-          port: 8100,
-        );
-        if (_forward == null) {
-          _lastError = 'Port forwarding denied by server';
-          _client?.close();
-          _client = null;
-          return;
-        }
+        _forward = await _targetClient!.forwardRemote(host: '127.0.0.1', port: 8100);
       }
 
-      // Handle incoming forwarded connections - bridge to ICE API
+      if (_forward == null) {
+        _lastError = 'Port forwarding denied by server';
+        debugPrint('[SSH] $_lastError');
+        await _cleanup();
+        return;
+      }
+
+      // Bridge incoming forwarded connections to ICE API
       _connectionsSub = _forward!.connections.listen((channel) {
-        debugPrint('[SSH] Incoming forwarded connection');
-        _handleForwardedConnection(channel);
+        debugPrint('[SSH] Incoming connection bridged');
+        _bridgeToIceApi(channel);
       });
 
       _running = true;
       sshStatus.value = SshStatus.configured;
-      _lastError = '✓ Tunnel active: $username@$hostName:$port → :8100 → localhost:8100';
+      _lastError = '✓ Tunnel active: target:8100 ↔ localhost:8100';
       debugPrint('[SSH] $_lastError');
 
-      // Track disconnection
-      _client!.done.then((_) {
-        debugPrint('[SSH] Client disconnected');
+      // Monitor disconnection
+      _targetClient!.done.then((_) {
+        debugPrint('[SSH] Target client disconnected');
         _running = false;
         sshStatus.value = SshStatus.unconfigured;
         _lastError = 'SSH disconnected';
@@ -173,45 +283,24 @@ class SshTunnelService {
     }
   }
 
-  Future<void> _handleForwardedConnection(SSHForwardChannel channel) async {
+  Future<void> _bridgeToIceApi(SSHForwardChannel channel) async {
     try {
-      // Connect to ICE API server
-      final localSocket = await Socket.connect(
-        '127.0.0.1',
-        8100,
-        timeout: const Duration(seconds: 5),
-      );
+      final local = await Socket.connect('127.0.0.1', 8100,
+          timeout: const Duration(seconds: 5));
 
-      // Bidirectional pipe
       channel.stream.listen(
-        (data) {
-          try {
-            localSocket.add(data);
-          } catch (_) {}
-        },
-        onDone: () {
-          try { localSocket.destroy(); } catch (_) {}
-        },
-        onError: (_) {
-          try { localSocket.destroy(); } catch (_) {}
-        },
+        (data) { try { local.add(data); } catch (_) {} },
+        onDone: () { try { local.destroy(); } catch (_) {} },
+        onError: (_) { try { local.destroy(); } catch (_) {} },
       );
 
-      localSocket.listen(
-        (data) {
-          try {
-            channel.sink.add(data);
-          } catch (_) {}
-        },
-        onDone: () {
-          try { channel.close(); } catch (_) {}
-        },
-        onError: (_) {
-          try { channel.close(); } catch (_) {}
-        },
+      local.listen(
+        (data) { try { channel.sink.add(data); } catch (_) {} },
+        onDone: () { try { channel.close(); } catch (_) {} },
+        onError: (_) { try { channel.close(); } catch (_) {} },
       );
     } catch (e) {
-      debugPrint('[SSH] Forward bridge failed: $e');
+      debugPrint('[SSH] Bridge failed: $e');
       try { channel.close(); } catch (_) {}
     }
   }
@@ -230,10 +319,10 @@ class SshTunnelService {
     _connectionsSub = null;
     try { _forward?.close(); } catch (_) {}
     _forward = null;
-    try { _client?.close(); } catch (_) {}
-    _client = null;
-    try { _socket?.close(); } catch (_) {}
-    _socket = null;
+    try { _targetClient?.close(); } catch (_) {}
+    _targetClient = null;
+    try { _jumpClient?.close(); } catch (_) {}
+    _jumpClient = null;
     _running = false;
   }
 

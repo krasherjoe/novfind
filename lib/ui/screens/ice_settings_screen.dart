@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -25,6 +26,8 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
   final _portController = TextEditingController(text: '8100');
   final _sshConfigController = TextEditingController();
   final _sshKeyController = TextEditingController();
+  Timer? _configDebounce;
+  Timer? _keyDebounce;
   bool _running = false;
   String? _statusMessage;
   String? _sshDirPath;
@@ -44,7 +47,23 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
     _portController.dispose();
     _sshConfigController.dispose();
     _sshKeyController.dispose();
+    _configDebounce?.cancel();
+    _keyDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onConfigChanged(String text) {
+    _configDebounce?.cancel();
+    _configDebounce = Timer(const Duration(milliseconds: 800), () {
+      _saveSshConfig();
+    });
+  }
+
+  void _onKeyChanged(String text) {
+    _keyDebounce?.cancel();
+    _keyDebounce = Timer(const Duration(milliseconds: 800), () {
+      _saveSshKey();
+    });
   }
 
   Future<String> _getSshDir() async {
@@ -337,6 +356,7 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
             TextFormField(
               controller: _sshConfigController,
               maxLines: 8,
+              onChanged: _onConfigChanged,
               style: TextStyle(fontSize: 12, fontFamily: 'monospace', color: cs.onSurface),
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
@@ -344,18 +364,6 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
                 hintStyle: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withValues(alpha: 0.4), fontFamily: 'monospace'),
                 contentPadding: const EdgeInsets.all(12),
               ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: _saveSshConfig,
-                    icon: const Icon(Icons.save, size: 16),
-                    label: const Text('Save SSH Config'),
-                  ),
-                ),
-              ],
             ),
           ],
         ),
@@ -377,6 +385,7 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
             TextFormField(
               controller: _sshKeyController,
               maxLines: 10,
+              onChanged: _onKeyChanged,
               style: TextStyle(fontSize: 12, fontFamily: 'monospace', color: cs.onSurface),
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
@@ -384,12 +393,6 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
                 hintStyle: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withValues(alpha: 0.4), fontFamily: 'monospace'),
                 contentPadding: const EdgeInsets.all(12),
               ),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: _saveSshKey,
-              icon: const Icon(Icons.save, size: 16),
-              label: const Text('Save Private Key'),
             ),
           ],
         ),

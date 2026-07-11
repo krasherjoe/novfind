@@ -111,7 +111,7 @@ class IceApiServer {
           });
 
         case '/debug':
-          await _json(request.response, await _collectDebugInfo());
+          await _json(request.response, _collectDebugInfo());
 
         case '/state':
           final state = await _collectFullState();
@@ -250,7 +250,7 @@ class IceApiServer {
     return base;
   }
 
-  Future<Map<String, dynamic>> _collectDebugInfo() async {
+  Map<String, dynamic> _collectDebugInfo() {
     final ssh = SshTunnelService.instance;
     return {
       'server': {
@@ -262,8 +262,8 @@ class IceApiServer {
       },
       'sshTunnel': {
         'running': ssh.isRunning,
-        'lastError': ssh.lastError,
-        'command': await ssh.getSshCommand(),
+        'lastError': ssh.lastError ?? '(none)',
+        'note': 'dartssh2 auto-tunnel: remote:8100 → localhost:8100',
       },
       'network': {
         'loopback': '127.0.0.1',
