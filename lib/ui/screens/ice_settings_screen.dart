@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../plugins/ice/ice_api_server.dart';
 import '../../plugins/ice/ice_logger.dart';
 import '../../plugins/ice/ssh_logger.dart';
-import '../../providers/connection_status.dart' show IceStatus, isIceOnline, isSshConfigured, SshStatus, getSshDir, iceStatus, resetSshDirCache, sshStatus, updateSshStatus;
+import '../../providers/connection_status.dart' show IceStatus, isIceOnline, isSshConfigured, SshStatus, getSshDir, iceStatus, persistentSshDir, resetSshDirCache, sshStatus, updateSshStatus;
 import '../../services/mattermost_debug_bridge.dart';
 import '../../services/ssh_tunnel_service.dart';
 import '../../services/watchdog_service.dart';
@@ -142,6 +142,13 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
       await configFile.writeAsString(_sshConfigController.text);
       _configExists = true;
 
+      // Also save to persistent storage (survives uninstall)
+      try {
+        final persistentDir = Directory(persistentSshDir);
+        await persistentDir.create(recursive: true);
+        await File('$persistentSshDir/config').writeAsString(_sshConfigController.text);
+      } catch (_) {}
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('ssh_config', _sshConfigController.text);
 
@@ -173,6 +180,13 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
       final keyFile = File('$sshDir/id_ed25519');
       await keyFile.writeAsString(_sshKeyController.text);
       _keyExists = true;
+
+      // Also save to persistent storage (survives uninstall)
+      try {
+        final persistentDir = Directory(persistentSshDir);
+        await persistentDir.create(recursive: true);
+        await File('$persistentSshDir/id_ed25519').writeAsString(_sshKeyController.text);
+      } catch (_) {}
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('ssh_key', _sshKeyController.text);

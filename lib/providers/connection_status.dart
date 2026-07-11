@@ -16,12 +16,24 @@ String? _foundSshDir;
 /// Clears the cached SSH directory so the next [getSshDir] call re-scans.
 void resetSshDirCache() => _foundSshDir = null;
 
+/// Persistent external SSH directory that survives app uninstall.
+const String persistentSshDir = '/storage/emulated/0/novfind/.ssh';
+
 /// Returns the directory where SSH config/key files were FOUND.
 /// If not found, returns the default app-private path.
 Future<String> getSshDir() async {
   if (_foundSshDir != null) return _foundSshDir!;
 
-  // Priority 1: app-private documents dir
+  // Priority 1: Persistent external storage (survives uninstall)
+  try {
+    if (await _hasSshFiles(persistentSshDir)) {
+      _foundSshDir = persistentSshDir;
+      debugPrint('[SSH] Found files in persistent: $persistentSshDir');
+      return persistentSshDir;
+    }
+  } catch (_) {}
+
+  // Priority 2: app-private documents dir
   try {
     final appDir = await getApplicationDocumentsDirectory();
     final p1 = '${appDir.path}/.ssh';
@@ -32,7 +44,7 @@ Future<String> getSshDir() async {
     }
   } catch (_) {}
 
-  // Priority 2: standard /storage emulated paths
+  // Priority 3: standard /storage emulated paths
   final fallbackPaths = [
     '/storage/emulated/0/Documents/.ssh',
     '/storage/emulated/0/.ssh',
@@ -47,7 +59,15 @@ Future<String> getSshDir() async {
     }
   }
 
-  // Fallback: app-private dir (create if needed)
+  // Fallback: create persistent external dir
+  try {
+    await Directory(persistentSshDir).create(recursive: true);
+    _foundSshDir = persistentSshDir;
+    debugPrint('[SSH] Created persistent dir: $persistentSshDir');
+    return persistentSshDir;
+  } catch (_) {}
+
+  // Last resort: app-private dir (create if needed)
   try {
     final appDir = await getApplicationDocumentsDirectory();
     final path = '${appDir.path}/.ssh';
@@ -56,7 +76,6 @@ Future<String> getSshDir() async {
     debugPrint('[SSH] Using default path: $path');
     return path;
   } catch (_) {
-    // Last resort
     _foundSshDir = '/storage/emulated/0/Documents/.ssh';
     return _foundSshDir!;
   }
