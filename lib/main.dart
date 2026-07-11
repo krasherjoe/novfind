@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'app_service.dart';
+import 'providers/connection_status.dart' show initConnectionStatus, updateSshStatus;
 import 'providers/theme_provider.dart';
 import 'ui/screens/ice_settings_screen.dart';
 import 'ui/screens/keyword_list_screen.dart';
@@ -12,6 +13,8 @@ import 'ui/screens/site_filter_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await loadTheme();
+  initConnectionStatus();
+  await updateSshStatus();
   iceApiServer.start();
   runApp(const ProviderScope(child: NovfindApp()));
 }

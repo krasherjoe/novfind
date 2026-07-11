@@ -8,7 +8,7 @@ import '../../providers/keywords_provider.dart';
 import '../../providers/preset_provider.dart';
 import '../../providers/search_history_provider.dart';
 import '../../app_service.dart' show restartIce;
-import '../../providers/connection_status.dart';
+import '../../providers/connection_status.dart' show isIceOnline, isSshConfigured;
 import '../../providers/theme_provider.dart' show themeNotifier, toggleTheme;
 import '../widgets/status_dot.dart';
 
@@ -39,7 +39,7 @@ class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
     final query = texts.join(' ');
     ref.read(searchHistoryProvider.notifier).addEntry(query);
     _selectedIds.clear();
-    context.go('/search/${Uri.encodeComponent(query)}');
+    context.push('/search/${Uri.encodeComponent(query)}');
   }
 
   @override
@@ -52,13 +52,13 @@ class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             StatusDot(
-              notifier: ValueNotifier(sshStatus.value == SshStatus.configured),
-              tooltip: sshStatus.value == SshStatus.configured ? 'SSH configured' : 'SSH not configured',
+              notifier: isSshConfigured,
+              tooltip: 'SSH',
               onTap: restartIce,
             ),
             StatusDot(
-              notifier: ValueNotifier(iceStatus.value == IceStatus.online),
-              tooltip: iceStatus.value == IceStatus.online ? 'ICE API running' : 'ICE API stopped',
+              notifier: isIceOnline,
+              tooltip: 'ICE',
               onTap: restartIce,
             ),
             const Text('novfind'),
@@ -74,7 +74,7 @@ class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.developer_mode),
-              onPressed: () => context.go('/ice'),
+              onPressed: () => context.push('/ice'),
               tooltip: 'ICE Debug',
             ),
             IconButton(
@@ -84,7 +84,7 @@ class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.filter_list),
-              onPressed: () => context.go('/sites'),
+              onPressed: () => context.push('/sites'),
               tooltip: 'サイトフィルター',
             ),
           ValueListenableBuilder<ThemeMode>(
@@ -179,7 +179,7 @@ class _KeywordListScreenState extends ConsumerState<KeywordListScreen> {
                           onTap: () {
                             ref.read(searchHistoryProvider.notifier).addEntry(preset.query);
                             Navigator.of(ctx).pop();
-                            context.go('/search/${Uri.encodeComponent(preset.query)}');
+                            context.push('/search/${Uri.encodeComponent(preset.query)}');
                           },
                         );
                       }).toList(),
@@ -316,7 +316,7 @@ class _SearchHistorySection extends ConsumerWidget {
                       label: Text(entry.keyword, style: const TextStyle(fontSize: 12)),
                       onPressed: () {
                         ref.read(searchHistoryProvider.notifier).addEntry(entry.keyword);
-                        context.go('/search/${Uri.encodeComponent(entry.keyword)}');
+                        context.push('/search/${Uri.encodeComponent(entry.keyword)}');
                       },
                       visualDensity: VisualDensity.compact,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -367,7 +367,7 @@ class _KeywordTile extends ConsumerWidget {
             icon: const Icon(Icons.search),
             onPressed: () {
               ref.read(searchHistoryProvider.notifier).addEntry(keyword.text);
-              context.go('/search/${Uri.encodeComponent(keyword.text)}');
+              context.push('/search/${Uri.encodeComponent(keyword.text)}');
             },
           ),
           IconButton(
@@ -379,7 +379,7 @@ class _KeywordTile extends ConsumerWidget {
       onTap: onToggleSelect,
       onLongPress: () {
         ref.read(searchHistoryProvider.notifier).addEntry(keyword.text);
-        context.go('/search/${Uri.encodeComponent(keyword.text)}');
+        context.push('/search/${Uri.encodeComponent(keyword.text)}');
       },
     );
   }

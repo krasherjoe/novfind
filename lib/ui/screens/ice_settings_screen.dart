@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../plugins/ice/ice_api_server.dart';
 import '../../plugins/ice/ice_logger.dart';
-import '../../providers/connection_status.dart';
+import '../../providers/connection_status.dart' show isIceOnline, isSshConfigured, updateSshStatus;
 import '../widgets/status_dot.dart';
 
 class IceSettingsScreen extends StatefulWidget {
@@ -172,13 +172,13 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             StatusDot(
-              notifier: ValueNotifier(sshStatus.value == SshStatus.configured),
-              tooltip: sshStatus.value == SshStatus.configured ? 'SSH configured' : 'SSH not configured',
+              notifier: isSshConfigured,
+              tooltip: 'SSH',
               onTap: () {},
             ),
             StatusDot(
-              notifier: ValueNotifier(iceStatus.value == IceStatus.online),
-              tooltip: iceStatus.value == IceStatus.online ? 'ICE API running' : 'ICE API stopped',
+              notifier: isIceOnline,
+              tooltip: 'ICE',
               onTap: () {},
             ),
             const Text('ICE Debug'),
