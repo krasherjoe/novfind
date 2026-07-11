@@ -31,6 +31,7 @@ class MattermostDebugBridge {
   Timer? _logFlushTimer;
   bool _running = false;
   DateTime? _lastPollTime;
+  final DateTime _bridgeStartTime = DateTime.now();
   final List<String> _pendingLogs = [];
   String? _lastError;
 
@@ -130,12 +131,16 @@ class MattermostDebugBridge {
       final ts = _parseCreateAt(latest['create_at']);
       if (ts != null) _lastPollTime = ts;
 
-      // Filter for !opencode commands from opencode bot
+      // Filter for !opencode commands (ignore messages from ourselves)
       for (final post in posts) {
         final message = post['message'] as String? ?? '';
-        final username = post['username'] as String? ?? '';
+        final createdAt = _parseCreateAt(post['create_at']);
 
-        if (username == _config!.opencodeBotName && message.startsWith('!opencode ')) {
+        // Skip posts created before the bridge started
+        if (createdAt != null && createdAt.isBefore(_bridgeStartTime)) continue;
+
+        // Only process !opencode prefixed messages
+        if (message.startsWith('!opencode ')) {
           await _handleCommand(post);
         }
       }
