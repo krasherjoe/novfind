@@ -6,6 +6,7 @@ import 'app_service.dart';
 import 'providers/connection_status.dart' show initConnectionStatus, updateSshStatus;
 import 'providers/theme_provider.dart';
 import 'services/mattermost_debug_bridge.dart';
+import 'services/watchdog_service.dart';
 import 'services/widget_service.dart';
 import 'ui/screens/ice_settings_screen.dart';
 import 'ui/screens/keyword_list_screen.dart';
@@ -21,6 +22,7 @@ Future<void> main() async {
   await iceApiServer.start();
   WidgetService.updateWidget();
   MattermostDebugBridge.instance.start();
+  WatchdogService.instance.start();
   runApp(const ProviderScope(child: NovfindApp()));
 }
 

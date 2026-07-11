@@ -40,7 +40,6 @@ class IceApiServer {
       iceStatus.value = IceStatus.offline;
       IceLogger.error('SYS:start', 'Failed to start server', error: e);
       debugPrint('[ICE] Failed to start: $e');
-      rethrow;
     }
   }
 

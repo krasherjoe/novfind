@@ -12,6 +12,7 @@ import '../../plugins/ice/ssh_logger.dart';
 import '../../providers/connection_status.dart' show isIceOnline, isSshConfigured, getSshDir, updateSshStatus;
 import '../../services/mattermost_debug_bridge.dart';
 import '../../services/ssh_tunnel_service.dart';
+import '../../services/watchdog_service.dart';
 import '../widgets/status_dot.dart';
 
 class IceSettingsScreen extends StatefulWidget {
@@ -219,6 +220,8 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
           _buildSshLogCard(cs),
           const SizedBox(height: 16),
           _buildEndpointsCard(cs),
+          const SizedBox(height: 16),
+          _buildWatchdogCard(cs),
           const SizedBox(height: 16),
           _buildMmStatusCard(cs),
           if (_statusMessage != null) ...[
@@ -527,6 +530,58 @@ class _IceSettingsScreenState extends State<IceSettingsScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildWatchdogCard(ColorScheme cs) {
+    final wd = WatchdogService.instance;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.autorenew, size: 18, color: cs.primary),
+                const SizedBox(width: 8),
+                Text('Auto-Recovery',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
+                const Spacer(),
+                Container(
+                  width: 10, height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: wd.isRunning ? Colors.green : Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _statBadge(cs, 'ICE', wd.iceRestarts),
+                const SizedBox(width: 8),
+                _statBadge(cs, 'SSH', wd.sshRestarts),
+                const SizedBox(width: 8),
+                _statBadge(cs, 'MM', wd.mmRestarts),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statBadge(ColorScheme cs, String label, int count) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: count > 0 ? Colors.orange.shade900 : cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text('$label:$count',
+          style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: cs.onSurface)),
     );
   }
 

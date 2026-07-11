@@ -237,6 +237,10 @@ class SshTunnelService {
         _running = false;
         sshStatus.value = SshStatus.unconfigured;
         _lastError = 'Disconnected';
+        // Auto-reconnect after 10 seconds (watchdog will also trigger)
+        Future.delayed(const Duration(seconds: 10), () {
+          if (!_running) start();
+        });
       });
     } catch (e) {
       _lastError = 'Error: $e';
